@@ -1,16 +1,35 @@
 # -*- coding: utf-8 -*-
 
+import argparse
+parser = argparse.ArgumentParser(description="for preprocess log file")
+parser.add_argument('input', metavar='I', type=str, nargs='?', default='input.txt',
+                    help='input file')
+parser.add_argument('output', metavar='O', type=str, nargs='?', default='output.txt',
+                    help='output file')
+args = parser.parse_args()
+
+
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 #import json
 
-def save_csv(df, filename="output.csv", index=0):
-  #if not os.path.exists('memdf.csv'):
-  if index==0:
-    df.to_csv(filename, index=True, header=True, mode='w') # encoding='utf-8-sig'
-  else: #append mode
-    df.to_csv(filename, index=True, header=False, mode='a') # encoding='utf-8-sig'
+def save_csv(df, filename, index=0):
+  try:
+    if index==0:
+      df.to_csv(filename, index=True, header=True, mode='w') # encoding='utf-8-sig'
+    else: #append mode
+      df.to_csv(filename, index=True, header=False, mode='a') # encoding='utf-8-sig'
+  except OSError:	# OSError: Cannot save file into a non-existent directory: '~'
+    #if not os.path.exists(path):
+    target_dir = filename.rfind('/')
+    path = filename[:target_dir]
+    os.mkdir(path)
+    #---
+    if index==0:
+      df.to_csv(filename, index=True, header=True, mode='w') # encoding='utf-8-sig'
+    else: #append mode
+      df.to_csv(filename, index=True, header=False, mode='a') # encoding='utf-8-sig'
 
 """##**memdf1 = access count**
 * x axis : (virtual) memory block address
@@ -48,7 +67,7 @@ for i in range(len(memdf)):
 df1 = pd.DataFrame()
 df1_rw = pd.DataFrame()
 for i in range(100): #under 
-  filename = './memdf/memdf0_'+str(i)+'.csv'
+  filename = args.input+'0_'+str(i)+'.csv'
   try:
     memdf = pd.read_csv(filename, sep=',', header=0, index_col=0, error_bad_lines=False)
     df = address_ref(memdf, concat=False)
@@ -69,18 +88,19 @@ df1.loc[(df1.type!='write'), 'writecount'] = 0
 df1_rw = df1.groupby(by=['blockaddress'], as_index=False).sum()
 
 print(len(df1), len(df1_rw))
-print(df1, df1_rw)
+#print(df1, df1_rw)
 
-save_csv(df1, 'memdf1.csv', 0)
-save_csv(df1_rw, 'memdf1_rw.csv', 0)
+save_csv(df1, args.output, 0)
+save_csv(df1_rw, args.output[:-4]+'_rw.csv', 0)
 
 """**memdf1 graph**
 > Specify the axis range (manual margin adjustment required)
 """
 
-memdf1 = pd.read_csv('memdf1.csv', sep=',', header=0, index_col=0, error_bad_lines=False)
-memdf1_rw = pd.read_csv('memdf1_rw.csv', sep=',', header=0, index_col=0, error_bad_lines=False)
+memdf1 = pd.read_csv(args.output, sep=',', header=0, index_col=0, error_bad_lines=False)
+memdf1_rw = pd.read_csv(args.output[:-4]+'_rw.csv', sep=',', header=0, index_col=0, error_bad_lines=False)
 
+"""
 #plt.style.use('default')
 plt.rcParams['figure.figsize'] = (24, 20)
 #plt.rcParams['font.size'] = 12
@@ -103,7 +123,8 @@ plt.legend(loc='upper right', ncol=1) #loc = 'best'
 #plt.margins(x=5)
 
 plt.show()
-
+"""
+"""
 plt.figure(figsize = (12, 10))
 
 # scatter
@@ -127,6 +148,7 @@ plt.legend(loc='upper right', ncol=1) #loc = 'best'
 #plt.margins(x=5)
 
 plt.show()
+"""
 
 '''#fig, ax = plt.subplots()
 fig = plt.figure()
@@ -158,6 +180,7 @@ ax[1].legend(loc='upper right', ncol=1) #loc = 'best'
 
 plt.show()
 
+"""
 #plt.figure(figsize = (20, 24))
 fig, ax = plt.subplots(3, figsize=(12,10), constrained_layout=True, sharex=True, sharey=True) # sharex=True, sharey=True
 
@@ -193,3 +216,4 @@ ax[2].set_ylabel('memory block access count')
 ax[2].legend(loc='upper right', ncol=1) #loc = 'best'
 
 plt.show()
+"""
