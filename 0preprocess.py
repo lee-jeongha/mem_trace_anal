@@ -32,6 +32,7 @@ def read_logfile_chunk(filename):
 
   # 2. read csv file
   chunk = pd.read_csv(filename, names=['type', 'address', 'size'], delim_whitespace=True, lineterminator="\n", skiprows=startline-1, chunksize=100000, header=None, error_bad_lines=False)
+  #chunk = pd.read_csv(filename, names=['type', 'address', 'size'], delim_whitespace=True, escapechar="\n", lineterminator="\r", skiprows=startline-1, chunksize=100000, header=None, error_bad_lines=False)
   chunk = list(chunk)
   #print(chunk[-1])
   
