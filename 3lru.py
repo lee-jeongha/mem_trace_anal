@@ -1,5 +1,16 @@
 # -*- coding: utf-8 -*-
 
+import argparse
+parser = argparse.ArgumentParser(description="for preprocess log file")
+parser.add_argument('input', metavar='I', type=str, nargs='?', default='input.txt',
+                    help='input file')
+parser.add_argument('output', metavar='O', type=str, nargs='?', default='output.txt',
+                    help='output file')
+parser.add_argument('chunk_size', metavar='S', type=int, nargs='?', default=10,
+                    help='chunk size')
+args = parser.parse_args()
+
+
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
@@ -61,20 +72,20 @@ def save_json(block_rank, readcnt, writecnt, i):
           'writecnt': writecnt}
           #,'dupl_block': list(dupl_block)}
 
-  with open("./checkpoint/checkpoint"+str(i)+".json", 'w', encoding='utf-8') as f:
+  with open(args.output[:-4]+"_checkpoint"+str(i)+".json", 'w', encoding='utf-8') as f:
       # indent=2 is not needed but makes the file human-readable 
       # if the data is nested
       json.dump(save, f, indent=2)
 
 def load_json(i):
-  with open("./checkpoint/checkpoint"+str(i)+".json", 'r') as f:
+  with open(args.output[:-4]+"_checkpoint"+str(i)+".json", 'r') as f:
       load = json.load(f)
   
   block_rank = load['block_rank']
   readcnt = load['readcnt']
   writecnt = load['writecnt']
   #dupl_block = set(load['dupl_block'])
-  print(load)
+  #print(load)
 
   return block_rank, readcnt, writecnt#, dupl_block
 
@@ -108,27 +119,15 @@ def cal_temp_local(startpoint, endpoint):#, Subsequent=False):
     block_rank, readcnt, writecnt = load_json(startpoint-1)
     print(block_rank, readcnt, writecnt)
   for i in range(startpoint, endpoint+1):
-    memdf = pd.read_csv('./memdf/memdf0_'+str(i)+'.csv', sep=',', header=0, index_col=0, error_bad_lines=False)
+    memdf = pd.read_csv(args.input+'0_'+str(i)+'.csv', sep=',', header=0, index_col=0, error_bad_lines=False)
     block_rank, readcnt, writecnt = temp_local(memdf, block_rank, readcnt, writecnt)
     save_json(block_rank, readcnt, writecnt, i)
 
-cal_temp_local(0, 72)#, Subsequent=False)
+cal_temp_local(0, args.chunk_size)#, Subsequent=False)
 
 """##**memdf3 graph**"""
 
-def load_json(i):
-  with open("./checkpoint/checkpoint"+str(i)+".json", 'r') as f:
-      load = json.load(f)
-  
-  block_rank = load['block_rank']
-  readcnt = load['readcnt']
-  writecnt = load['writecnt']
-  #dupl_block = set(load['dupl_block'])
-  print(load)
-
-  return block_rank, readcnt, writecnt#, dupl_block
-
-block_rank, readcnt, writecnt = load_json(71)
+block_rank, readcnt, writecnt = load_json(args.chunk_size)
 
 #--
 fig, ax = plt.subplots(2, figsize=(24,20), constrained_layout=True, sharex=True, sharey=True) # sharex=True: share x axis
@@ -155,7 +154,7 @@ ax[0].legend(loc=(1.0,0.8), ncol=1) #loc = 'best', 'upper right'
 ax[1].scatter(x2, y2, color='red', label='write', s=5)
 ax[1].set_xscale('log')
 ax[1].set_yscale('log')
-ax[1].set_ylim([0.5, 1e7])
+#ax[1].set_ylim([0.5, 1e7])
 # legend
 ax[1].set_xlabel('rank(temporal locality)')
 ax[1].set_ylabel('access count')
@@ -163,4 +162,4 @@ ax[1].legend(loc=(1.0,0.8), ncol=1) #loc = 'best'
 
 
 #plt.show()
-plt.savefig('callgrind-mnist-v3.3.final.png', dpi=300)
+plt.savefig(args.output[:-4]+'.png', dpi=300)
