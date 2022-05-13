@@ -60,6 +60,6 @@ chunk = read_logfile_chunk(filename=args.input)
 for i in range(len(chunk)):
   chunk[i] = read_write(chunk[i])
   save_csv(chunk[i], args.output, i)
-  save_csv(chunk[i], args.output[:-4]+'4_'+str(i)+'.csv', 0)
+  save_csv(chunk[i], args.output[:-4]+'_'+str(i)+'.csv', 0)
   print(i)
 print('done!!')

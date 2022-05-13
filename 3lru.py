@@ -14,6 +14,7 @@ args = parser.parse_args()
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
+import os
 import json
 
 """##**memdf3 = tendency toward temporal locality**
@@ -71,11 +72,23 @@ def save_json(block_rank, readcnt, writecnt, i):
           'readcnt': readcnt,
           'writecnt': writecnt}
           #,'dupl_block': list(dupl_block)}
+  try:
+    with open(args.output[:-4]+"_checkpoint"+str(i)+".json", 'w', encoding='utf-8') as f:
+        # indent=2 is not needed but makes the file human-readable 
+        # if the data is nested
+        json.dump(save, f, indent=2)
 
-  with open(args.output[:-4]+"_checkpoint"+str(i)+".json", 'w', encoding='utf-8') as f:
-      # indent=2 is not needed but makes the file human-readable 
-      # if the data is nested
-      json.dump(save, f, indent=2)
+  except FileNotFoundError:	# FileNotFoundError: [Errno2] No such file or directory: '~'
+    #if not os.path.exists(path):
+    target_dir = args.output[:-4]
+    target_offset = target_dir.rfind('/')
+    path = target_dir[:target_offset]
+    os.mkdir(path)
+    #---
+    with open(args.output[:-4]+"_checkpoint"+str(i)+".json", 'w', encoding='utf-8') as f:
+        # indent=2 is not needed but makes the file human-readable 
+        # if the data is nested
+        json.dump(save, f, indent=2)
 
 def load_json(i):
   with open(args.output[:-4]+"_checkpoint"+str(i)+".json", 'r') as f:
@@ -115,11 +128,18 @@ def cal_temp_local(startpoint, endpoint):#, Subsequent=False):
   block_rank = list()
   readcnt = list()
   writecnt = list()
+  
   if(startpoint>0):
     block_rank, readcnt, writecnt = load_json(startpoint-1)
-    print(block_rank, readcnt, writecnt)
-  for i in range(startpoint, endpoint+1):
-    memdf = pd.read_csv(args.input+'0_'+str(i)+'.csv', sep=',', header=0, index_col=0, error_bad_lines=False)
+    #print(block_rank, readcnt, writecnt)
+  
+  if(args.chunk_size==1):
+    memdf = pd.read_csv(args.input+'_'+str('0')+'.csv', sep=',', header=0, index_col=0, on_bad_lines='skip')
+    block_rank, readcnt, writecnt = temp_local(memdf, block_rank, readcnt, writecnt)
+    save_json(block_rank, readcnt, writecnt, 0)
+    
+  for i in range(startpoint, endpoint-1):
+    memdf = pd.read_csv(args.input+'_'+str(i)+'.csv', sep=',', header=0, index_col=0, on_bad_lines='skip')
     block_rank, readcnt, writecnt = temp_local(memdf, block_rank, readcnt, writecnt)
     save_json(block_rank, readcnt, writecnt, i)
 
@@ -127,7 +147,7 @@ cal_temp_local(0, args.chunk_size)#, Subsequent=False)
 
 """##**memdf3 graph**"""
 
-block_rank, readcnt, writecnt = load_json(args.chunk_size)
+block_rank, readcnt, writecnt = load_json(args.chunk_size-1)
 
 #--
 fig, ax = plt.subplots(2, figsize=(24,20), constrained_layout=True, sharex=True, sharey=True) # sharex=True: share x axis

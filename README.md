@@ -26,3 +26,6 @@ Each row contains operation(readi/readd/write), memory address and length.
 * readi: read instruction
 * readd: read data
 * write: wirte on memory
+
+## execute code with 'run.sh'
+`./run.sh [log_file] [output_directory]`

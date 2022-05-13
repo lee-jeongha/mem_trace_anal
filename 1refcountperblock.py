@@ -12,7 +12,7 @@ args = parser.parse_args()
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
-#import json
+import os
 
 def save_csv(df, filename, index=0):
   try:
@@ -39,7 +39,7 @@ def save_csv(df, filename, index=0):
 def address_ref(inputdf, concat=False):
   if (concat) :
     df = inputdf.groupby(by=['blockaddress', 'type'], as_index=False).sum()
-    print(df)
+    #print(df)
   else :
     inputdf = inputdf.replace('readi', 'read')
     inputdf = inputdf.replace('readd', 'read')
@@ -67,9 +67,9 @@ for i in range(len(memdf)):
 df1 = pd.DataFrame()
 df1_rw = pd.DataFrame()
 for i in range(100): #under 
-  filename = args.input+'0_'+str(i)+'.csv'
+  filename = args.input+'_'+str(i)+'.csv'
   try:
-    memdf = pd.read_csv(filename, sep=',', header=0, index_col=0, error_bad_lines=False)
+    memdf = pd.read_csv(filename, sep=',', header=0, index_col=0, on_bad_lines='skip')
     df = address_ref(memdf, concat=False)
     df1 = pd.concat([df1, df])
   except FileNotFoundError:
@@ -97,8 +97,8 @@ save_csv(df1_rw, args.output[:-4]+'_rw.csv', 0)
 > Specify the axis range (manual margin adjustment required)
 """
 
-memdf1 = pd.read_csv(args.output, sep=',', header=0, index_col=0, error_bad_lines=False)
-memdf1_rw = pd.read_csv(args.output[:-4]+'_rw.csv', sep=',', header=0, index_col=0, error_bad_lines=False)
+memdf1 = pd.read_csv(args.output, sep=',', header=0, index_col=0, on_bad_lines='skip')
+memdf1_rw = pd.read_csv(args.output[:-4]+'_rw.csv', sep=',', header=0, index_col=0, on_bad_lines='skip')
 
 """
 #plt.style.use('default')
@@ -162,7 +162,7 @@ y1 = memdf1['readcount']
 y2 = memdf1['writecount']
 print(x.min(), x.max())
 print(y1.max(), y2.max())
-plt.axis([0-1e6, memdf1['blockaddress'].max()+1e6, 0-2, max(y1.max(), y2.max())+10]) # [xmin, xmax, ymin, ymax]
+#plt.axis([0-1e6, memdf1['blockaddress'].max()+1e6, 0-2, max(y1.max(), y2.max())+10]) # [xmin, xmax, ymin, ymax]
 
 # read graph
 ax[0].scatter(x, y1, color='blue', label='read', s=5)
@@ -178,7 +178,8 @@ ax[1].set_xlabel('(virtual) memory block address')
 ax[1].set_ylabel('memory block access count')
 ax[1].legend(loc='upper right', ncol=1) #loc = 'best'
 
-plt.show()
+#plt.show()
+plt.savefig(args.output[:-4]+'.png', dpi=300)
 
 """
 #plt.figure(figsize = (20, 24))

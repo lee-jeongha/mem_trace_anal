@@ -12,6 +12,7 @@ args = parser.parse_args()
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
+import os
 
 def save_csv(df, filename, index=0):
   try:
@@ -40,8 +41,8 @@ def save_csv(df, filename, index=0):
 * y axis : % of reference count
 """
 
-memdf2 = pd.read_csv(args.input, sep=',', header=0, index_col=0, error_bad_lines=False)
-memdf2_rw = pd.read_csv(args.input[:-4]+'_rw.csv', sep=',', header=0, index_col=0, error_bad_lines=False)
+memdf2 = pd.read_csv(args.input, sep=',', header=0, index_col=0, on_bad_lines='skip')
+memdf2_rw = pd.read_csv(args.input[:-4]+'_rw.csv', sep=',', header=0, index_col=0, on_bad_lines='skip')
 
 # ranking
 memdf2['read_rank'] = memdf2['readcount'].rank(ascending=False)
@@ -55,7 +56,7 @@ memdf2_rw['rw_rank'] = memdf2_rw['count'].rank(ascending=False)
 total_read = memdf2['readcount'].sum()
 total_write = memdf2['writecount'].sum()
 total_rw = memdf2_rw['count'].sum()
-print(total_read, total_write, total_rw)
+#print(total_read, total_write, total_rw)
 
 # percentage
 memdf2['readpcnt'] = (memdf2['readcount'] / total_read)
@@ -68,8 +69,8 @@ memdf2['write_rank_pcnt'] = memdf2['writepcnt'].rank(ascending=False, pct=True)
 memdf2_rw['rw_rank_pcnt'] = memdf2_rw['rwpcnt'].rank(ascending=False, pct=True)
 #print(memdf2)
 #print(memdf2_rw)
-memdf2.to_csv(args.output)
-memdf2_rw.to_csv(args.output[:-4]+'_rw.csv')
+save_csv(memdf2, args.output, 0)
+save_csv(memdf2_rw, args.output[:-4]+'_rw.csv', 0)
 
 """memdf2.1 graph"""
 
@@ -136,8 +137,8 @@ ax[1].set_ylabel('memory block access count')
 ax[1].legend(loc=(1.0,0.8), ncol=1) #loc = 'best'
 
 
-plt.show()
-#plt.savefig(args.output[:-4]+'.png', dpi=300)
+#plt.show()
+plt.savefig(args.output[:-4]+'.png', dpi=300)
 
 """memdf2.2 graph"""
 

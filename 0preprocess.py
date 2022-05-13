@@ -12,7 +12,7 @@ args = parser.parse_args()
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
-import json
+import os
 
 """##**preprocess**"""
 
@@ -28,11 +28,11 @@ def read_logfile_chunk(filename):
     if (line.startswith('read') or line.startswith('write')):
       break
   f.close()
-  print(startline)
+  print("startline:",startline)
 
   # 2. read csv file
-  chunk = pd.read_csv(filename, names=['type', 'address', 'size'], delim_whitespace=True, lineterminator="\n", skiprows=startline-1, chunksize=100000, header=None, error_bad_lines=False)
-  #chunk = pd.read_csv(filename, names=['type', 'address', 'size'], delim_whitespace=True, escapechar="\n", lineterminator="\r", skiprows=startline-1, chunksize=100000, header=None, error_bad_lines=False)
+  #chunk = pd.read_csv(filename, names=['type', 'address', 'size'], delim_whitespace=True, lineterminator="\n", skiprows=startline-1, chunksize=1000000, header=None, on_bad_lines='skip')
+  chunk = pd.read_csv(filename, names=['type', 'address', 'size'], delim_whitespace=True, escapechar="\n", lineterminator="\r", skiprows=startline-1, chunksize=1000000, header=None, on_bad_lines='skip')
   chunk = list(chunk)
   #print(chunk[-1])
   
@@ -72,6 +72,6 @@ chunk = read_logfile_chunk(filename=args.input)
 for i in range(len(chunk)):
   chunk[i] = chunk_preprocess(chunk[i])
   save_csv(chunk[i], args.output, i)
-  save_csv(chunk[i], args.output[:-4]+'0_'+str(i)+'.csv', 0)
+  save_csv(chunk[i], args.output[:-4]+'_'+str(i)+'.csv', 0)
   print(i)
 print('done!!')
