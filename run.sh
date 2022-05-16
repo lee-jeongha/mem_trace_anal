@@ -32,18 +32,14 @@ echo =====3lru.py is done!=====
 type4="$target/memdf4/memdf4.csv"
 python3 4memaccess.py $type0 $type4
 echo =====4memaccess.py is done!=====
-columns=(5 6 7)
 gnuplot << EOF
   set datafile separator ','
   set title "memory access"
-  set xlabel "x"
-  set ylabel "y"
-  set term png
+  set xlabel "logical time"
+  set ylabel "unique block address number"
+  set term png size 1500,1100
   set output "${type4::(-4)}.png"
-  plot for [col=0:2] "${type4}" using 1:${columns[col]}
+  plot "${type4}" using 1:5 lt rgb "blue" title "readi", \
+"${type4}" using 1:6 lt rgb "red" title "readd", \
+"${type4}" using 1:7 lt rgb "forest-green" title "write"
 EOF
-
-#  plot "${type4}" using 1:5 lt rgb "blue", \
-#  plot "${type4}" using 1:6 lt rgb "red", \
-#  plot "${type4}" using 1:7 lt rgb "forest-green"
-
