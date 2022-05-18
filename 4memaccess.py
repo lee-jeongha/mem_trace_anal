@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import argparse
-parser = argparse.ArgumentParser(description="use only accessed memory area")
-parser.add_argument('input', metavar='I', type=str, nargs='?', default='input.txt',
+parser = argparse.ArgumentParser(description="assign unique number to accessed memory area")
+parser.add_argument("--input", "-i", metavar='I', type=str, nargs='?', default='input.txt',
                     help='input file')
-parser.add_argument('output', metavar='O', type=str, nargs='?', default='output.txt',
+parser.add_argument("--output", "-o", metavar='O', type=str, nargs='?', default='output.txt',
                     help='output file')
 args = parser.parse_args()
 

@@ -28,4 +28,4 @@ Each row contains operation(readi/readd/write), memory address and length.
 * write: wirte on memory
 
 ## execute code with 'run.sh'
-`./run.sh [log_file] [output_directory]`
+`./run.sh -i [log_file] -o [output_directory]`

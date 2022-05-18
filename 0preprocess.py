@@ -2,9 +2,9 @@
 
 import argparse
 parser = argparse.ArgumentParser(description="for preprocess log file")
-parser.add_argument('input', metavar='I', type=str, nargs='?', default='input.txt',
+parser.add_argument("--input", "-i", metavar='I', type=str, nargs='?', default='input.txt',
                     help='input file')
-parser.add_argument('output', metavar='O', type=str, nargs='?', default='output.txt',
+parser.add_argument("--output", "-o", metavar='O', type=str, nargs='?', default='output.txt',
                     help='output file')
 args = parser.parse_args()
 
