@@ -1,4 +1,4 @@
-# mem\_trace\_anal
+# memory-trace-analysis
 
 For ananlyzing memory trace and plotting graph
 
