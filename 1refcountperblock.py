@@ -155,6 +155,11 @@ fig = plt.figure()
 ax = fig.add_axes([0, 0, 1, 1])'''
 
 fig, ax = plt.subplots(2, constrained_layout=True, sharex=True, sharey=True) # sharex=True
+# figsize=(7,6), 
+
+font_size=17
+parameters = {'axes.labelsize': font_size, 'axes.titlesize': font_size, 'xtick.labelsize': font_size, 'ytick.labelsize': font_size}
+plt.rcParams.update(parameters)
 
 # scatter
 x = memdf1['blockaddress']

@@ -74,6 +74,9 @@ save_csv(memdf2_rw, args.output[:-4]+'_rw.csv', 0)
 
 """memdf2.1 graph"""
 
+#memdf2 = pd.read_csv(args.output, sep=',', header=0, index_col=0, on_bad_lines='skip')
+#memdf2_rw = pd.read_csv(args.output[:-4]+'_rw.csv', sep=',', header=0, index_col=0, on_bad_lines='skip')
+
 """
 #plt.figure(figsize=(12,10))
 
@@ -103,7 +106,12 @@ plt.legend(loc='upper right', ncol=1)
 plt.show()
 """
 
-fig, ax = plt.subplots(2, figsize=(11,10), constrained_layout=True, sharex=True, sharey=True) # sharex=True: share x axis
+fig, ax = plt.subplots(2, figsize=(7,6), constrained_layout=True, sharex=True, sharey=True) # sharex=True: share x axis
+# figsize=(11,10), 
+
+font_size=20
+parameters = {'axes.labelsize': font_size, 'axes.titlesize': font_size, 'xtick.labelsize': font_size, 'ytick.labelsize': font_size}
+plt.rcParams.update(parameters)
 
 #read
 x1 = memdf2['read_rank']

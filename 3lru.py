@@ -152,6 +152,10 @@ block_rank, readcnt, writecnt = load_json(args.chunk_size-1)
 #--
 fig, ax = plt.subplots(2, figsize=(24,20), constrained_layout=True, sharex=True, sharey=True) # sharex=True: share x axis
 
+font_size=25
+parameters = {'axes.labelsize': font_size, 'axes.titlesize': font_size, 'xtick.labelsize': font_size, 'ytick.labelsize': font_size}
+plt.rcParams.update(parameters)
+
 #read
 x1 = range(1,len(readcnt)+1)
 y1 = readcnt
