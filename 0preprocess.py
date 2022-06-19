@@ -9,9 +9,7 @@ parser.add_argument("--output", "-o", metavar='O', type=str, nargs='?', default=
 args = parser.parse_args()
 
 
-import matplotlib.pyplot as plt
 import pandas as pd
-import numpy as np
 import os
 
 """##**preprocess**"""
@@ -61,7 +59,7 @@ def save_csv(df, filename, index=0):
     #if not os.path.exists(path):
     target_dir = filename.rfind('/')
     path = filename[:target_dir]
-    os.mkdir(path)
+    os.makedirs(path)
     #---
     if index==0:
       df.to_csv(filename, index=True, header=True, mode='w') # encoding='utf-8-sig'
