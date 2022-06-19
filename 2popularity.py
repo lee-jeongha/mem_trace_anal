@@ -78,37 +78,23 @@ save_csv(memdf2_rw, args.output[:-4]+'_rw.csv', 0)
 
 """zipf"""
 
-from scipy.optimize import minimize
-
 if args.zipf:
-  def loglik(b, x, freqs):  
-    # Power law function
-    Probabilities = x**(-b)
-
-    # Normalized
-    Probabilities = Probabilities/Probabilities.sum()
-
-    # Log Likelihoood
-    Lvector = np.log(Probabilities)
-
-    # Multiply the vector by frequencies
-    Lvector = np.log(Probabilities) * freqs
-
-    # LL is the sum
-    L = Lvector.sum()
-
-    # We want to maximize LogLikelihood or minimize (-1)*LogLikelihood
-    return(-L)
+  def func_powerlaw(x, m, c):
+    return x ** m * c
 
   def zipf_param(freqs):
+    from scipy.optimize import curve_fit
+
+    target_func = func_powerlaw
+
     freqs = freqs[freqs != 0]
     y = freqs.sort_values(ascending=False).to_numpy()
+    x = np.array(range(1, len(y) + 1))
 
-    x = np.array(range(1,len(y)+1))
+    popt, pcov = curve_fit(target_func, x, y, maxfev=2000)
+    #print(popt)
 
-    s_best = minimize(loglik, [2], args=(x, y))
-    return s_best
-
+    return popt
 
 """memdf2.1 graph"""
 
@@ -138,23 +124,33 @@ plt.yscale('log')
 plt.ylim([0.5,1e5])
 
 if args.zipf:
-  s_best1 = zipf_param(x1, y1)
-  s_best2 = zipf_param(x2, y2)
-  s_best3 = zipf_param(x3, y3)
-  plt.plot(x1, (2*y1.max())*x1**-s_best1.x, color="skyblue", lw=2, label = "fitted MLE"+str(-s_best1.x))
-  plt.plot(x2, (2*y2.max())*x2**-s_best2.x, color="salmon", lw=2, label = "fitted MLE"+str(-s_best2.x))
-  plt.plot(x3, (2*y3.max())*x3**-s_best3.x, color="limegreen", lw=2, label = "fitted MLE"+str(-s_best3.x))
-
+  s_best1 = zipf_param(y1)
+  s_best2 = zipf_param(y2)
+  s_best3 = zipf_param(y3)
+  plt.plot(x1, func_powerlaw(x1, *s_best1), color="skyblue", lw=2, label="curve_fitting: read")
+  plt.plot(x2, func_powerlaw(x2, *s_best2), color="salmon", lw=2, label="curve_fitting: write")
+  plt.plot(x3, func_powerlaw(x3, *s_best3), color="limegreen", lw=2, label="curve_fitting: read&write")
+  
+  plt.annotate(str(round(s_best1[0],5)), xy=(10, func_powerlaw(10, *s_best1)), xycoords='data',
+               xytext=(-10.0, -70.0), textcoords="offset points", color="steelblue", size=13,
+               arrowprops=dict(arrowstyle="->", ls="--", color="steelblue", connectionstyle="arc3,rad=-0.2"))
+  plt.annotate(str(round(s_best2[0],5)), xy=(100, func_powerlaw(100, *s_best2)), xycoords='data',
+               xytext=(-100.0, -50.0), textcoords="offset points", color="indianred", size=13,  # xytext=(-30.0, -50.0)
+               arrowprops=dict(arrowstyle="->", ls="--", color="indianred", connectionstyle="arc3,rad=-0.2"))
+  plt.annotate(str(round(s_best3[0],5)), xy=(100, func_powerlaw(100, *s_best3)), xycoords='data',
+               xytext=(-10.0, -50.0), textcoords="offset points", color="olivedrab", size=13,  # xytext=(-80.0, -50.0)
+               arrowprops=dict(arrowstyle="->", ls="--", color="olivedrab", connectionstyle="arc3,rad=-0.2"))
+               
 # legend
 plt.xlabel('ranking')
 plt.ylabel('memory block access count')
-plt.legend(loc='upper right', ncol=1)
+plt.legend(loc='lower left', ncol=1)
 
 # plt.show()
 plt.savefig(args.output[:-4]+'.png', dpi=300)
 """
 
-fig, ax = plt.subplots(2, figsize=(7,6), constrained_layout=True, sharex=True, sharey=True) # sharex=True: share x axis
+fig, ax = plt.subplots(2, figsize=(7,8), constrained_layout=True, sharex=True, sharey=True) # sharex=True: share x axis
 # figsize=(11,10), 
 
 font_size=20
@@ -178,13 +174,13 @@ ax[0].scatter(x2, y2, color='red', label='write', s=5)
 if args.zipf:
   s_best1 = zipf_param(y1)
   s_best2 = zipf_param(y2)
-  ax[0].plot(x1, (2*y1.max())*x1**-s_best1.x, color="skyblue", lw=2, label = "fitted MLE"+str(-s_best1.x))
-  ax[0].plot(x2, (2*y2.max())*x2**-s_best2.x, color="salmon", lw=2, label = "fitted MLE"+str(-s_best2.x))
+  ax[0].plot(x1, func_powerlaw(x1, *s_best1), color="skyblue", lw=2, label="curve_fitting: read")
+  ax[0].plot(x2, func_powerlaw(x2, *s_best2), color="salmon", lw=2, label="curve_fitting: write")
 
 # legend
 ax[0].set_xlabel('ranking')
 ax[0].set_ylabel('memory block access count')
-ax[0].legend(loc=(1.0,0.8), ncol=1) #loc = 'best', 'upper right'
+ax[0].legend(loc='lower left', ncol=1) #loc = 'best', 'upper right', (1.0,0.8)
 
 # read+write graph
 ax[1].scatter(x3, y3, color='green', label='read&write', s=5)
@@ -194,16 +190,16 @@ ax[1].set_yscale('log')
 
 if args.zipf:
   s_best3 = zipf_param(y3)
-  ax[1].plot(x3, (2*y3.max())*x3**-s_best3.x, color="limegreen", lw=2, label = "fitted MLE"+str(-s_best3.x))
+  ax[1].plot(x3, func_powerlaw(x3, *s_best3), color="limegreen", lw=2, label = "curve_fitting: read&write")
 
 # legend
 ax[1].set_xlabel('ranking')
 ax[1].set_ylabel('memory block access count')
-ax[1].legend(loc=(1.0,0.8), ncol=1) #loc = 'best'
-
+ax[1].legend(loc='lower left', ncol=1) #loc = 'best', 'upper right', (1.0,0.8)
 
 #plt.show()
 plt.savefig(args.output[:-4]+'.png', dpi=300)
+
 
 """memdf2.2 graph"""
 
