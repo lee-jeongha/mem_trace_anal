@@ -8,6 +8,8 @@ parser.add_argument("--output", "-o", metavar='O', type=str, nargs='?', default=
                     help='output file')
 parser.add_argument("--zipf", "-z", action='store_true',
                     help='calculate zipf parameter')
+parser.add_argument("--title", "-t", metavar='T', type=str, nargs='?', default='',
+                    help='title of a graph')
 args = parser.parse_args()
 
 
@@ -118,7 +120,7 @@ y3 = memdf2_rw['count']
 #scatter
 plt.scatter(x1, y1, color='blue', label='read', s=7)
 plt.scatter(x2, y2, color='red', label='write', s=7)
-plt.scatter(x3, y3, color='green', label='read+write', s=7)
+plt.scatter(x3, y3, color='green', label='read&write', s=7)
 plt.xscale('log')
 plt.yscale('log')
 plt.ylim([0.5,1e5])
@@ -134,8 +136,8 @@ if args.zipf:
   plt.annotate(str(round(s_best1[0],5)), xy=(10, func_powerlaw(10, *s_best1)), xycoords='data',
                xytext=(-10.0, -70.0), textcoords="offset points", color="steelblue", size=13,
                arrowprops=dict(arrowstyle="->", ls="--", color="steelblue", connectionstyle="arc3,rad=-0.2"))
-  plt.annotate(str(round(s_best2[0],5)), xy=(100, func_powerlaw(100, *s_best2)), xycoords='data',
-               xytext=(-100.0, -50.0), textcoords="offset points", color="indianred", size=13,  # xytext=(-30.0, -50.0)
+  plt.annotate(str(round(s_best2[0],5)), xy=(80, func_powerlaw(80, *s_best2)), xycoords='data',
+               xytext=(-80.0, -30.0), textcoords="offset points", color="indianred", size=13,  # xytext=(-30.0, -50.0)
                arrowprops=dict(arrowstyle="->", ls="--", color="indianred", connectionstyle="arc3,rad=-0.2"))
   plt.annotate(str(round(s_best3[0],5)), xy=(100, func_powerlaw(100, *s_best3)), xycoords='data',
                xytext=(-10.0, -50.0), textcoords="offset points", color="olivedrab", size=13,  # xytext=(-80.0, -50.0)
@@ -145,6 +147,9 @@ if args.zipf:
 plt.xlabel('ranking')
 plt.ylabel('memory block access count')
 plt.legend(loc='lower left', ncol=1)
+
+if args.title != '':
+  plt.title(args.title, fontsize=25)
 
 # plt.show()
 plt.savefig(args.output[:-4]+'.png', dpi=300)
@@ -156,6 +161,9 @@ fig, ax = plt.subplots(2, figsize=(7,8), constrained_layout=True, sharex=True, s
 font_size=20
 parameters = {'axes.labelsize': font_size, 'axes.titlesize': font_size, 'xtick.labelsize': font_size, 'ytick.labelsize': font_size}
 plt.rcParams.update(parameters)
+
+if args.title != '':
+  plt.suptitle(args.title, fontsize=17)
 
 #read
 x1 = memdf2['read_rank']

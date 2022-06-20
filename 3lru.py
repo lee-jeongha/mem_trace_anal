@@ -8,6 +8,8 @@ parser.add_argument("--output", "-o", metavar='O', type=str, nargs='?', default=
                     help='output file')
 parser.add_argument("--chunk_group", "-c", metavar='S', type=int, nargs='?', default=10,
                     help='# of chunk group')
+parser.add_argument("--title", "-t", metavar='T', type=str, nargs='?', default='',
+                    help='title of a graph')
 args = parser.parse_args()
 
 
@@ -155,6 +157,9 @@ fig, ax = plt.subplots(2, figsize=(24,20), constrained_layout=True, sharex=True,
 font_size=25
 parameters = {'axes.labelsize': font_size, 'axes.titlesize': font_size, 'xtick.labelsize': font_size, 'ytick.labelsize': font_size}
 plt.rcParams.update(parameters)
+
+if args.title != '':
+  plt.suptitle(args.title, fontsize=25)
 
 #read
 x1 = range(1,len(readcnt)+1)

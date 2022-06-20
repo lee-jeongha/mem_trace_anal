@@ -6,6 +6,8 @@ parser.add_argument("--input", "-i", metavar='I', type=str, nargs='?', default='
                     help='input file')
 parser.add_argument("--output", "-o", metavar='O', type=str, nargs='?', default='output.txt',
                     help='output file')
+parser.add_argument("--title", "-t", metavar='T', type=str, nargs='?', default='',
+                    help='title of a graph')
 args = parser.parse_args()
 
 
@@ -150,23 +152,23 @@ plt.legend(loc='upper right', ncol=1) #loc = 'best'
 plt.show()
 """
 
-'''#fig, ax = plt.subplots()
-fig = plt.figure()
-ax = fig.add_axes([0, 0, 1, 1])'''
-
-fig, ax = plt.subplots(2, constrained_layout=True, sharex=True, sharey=True) # sharex=True
+fig, ax = plt.subplots(2, figsize=(6,6), constrained_layout=True, sharex=True, sharey=True) # sharex=True
 # figsize=(7,6), 
 
 font_size=17
 parameters = {'axes.labelsize': font_size, 'axes.titlesize': font_size, 'xtick.labelsize': font_size, 'ytick.labelsize': font_size}
 plt.rcParams.update(parameters)
 
+if args.title != '':
+  plt.suptitle(args.title, fontsize=17)
+
 # scatter
 x = memdf1['blockaddress']
 y1 = memdf1['readcount']
 y2 = memdf1['writecount']
 print(x.min(), x.max())
-print(y1.max(), y2.max())
+print(y1.min(), y1.max())
+print(y2.min(), y2.max())
 #plt.axis([0-1e6, memdf1['blockaddress'].max()+1e6, 0-2, max(y1.max(), y2.max())+10]) # [xmin, xmax, ymin, ymax]
 
 # read graph
@@ -185,41 +187,3 @@ ax[1].legend(loc='upper right', ncol=1) #loc = 'best'
 
 #plt.show()
 plt.savefig(args.output[:-4]+'.png', dpi=300)
-
-"""
-#plt.figure(figsize = (20, 24))
-fig, ax = plt.subplots(3, figsize=(12,10), constrained_layout=True, sharex=True, sharey=True) # sharex=True, sharey=True
-
-# scatter
-x = memdf1['blockaddress']
-x3 = memdf1_rw['blockaddress']
-y1 = memdf1['readcount']
-y2 = memdf1['writecount']
-y3 = memdf1_rw['count']
-print(x.min(), x.max())
-print(y1.max(), y2.max(), y3.max())
-plt.axis([0-1e6, memdf1['blockaddress'].max()+1e6, 0-2, max(y1.max(), y2.max(), y3.max())+10]) # [xmin, xmax, ymin, ymax]
-
-# read graph
-ax[0].scatter(x, y1, color='blue', label='read', s=5) #aquamarine
-# legend
-#ax[0].set_xlabel('(virtual) memory block address')
-ax[0].set_ylabel('memory block access count')
-ax[0].legend(loc='upper right', ncol=1) #loc = 'best'
-
-# write graph
-ax[1].scatter(x, y2, color='red', label='write', s=5) #salmon
-# legend
-#ax[1].set_xlabel('(virtual) memory block address')
-ax[1].set_ylabel('memory block access count')
-ax[1].legend(loc='upper right', ncol=1) #loc = 'best'
-
-# read+write graph
-ax[2].scatter(x3, y3, color='green', label='read+write', s=5)
-# legend
-ax[2].set_xlabel('(virtual) memory block address')
-ax[2].set_ylabel('memory block access count')
-ax[2].legend(loc='upper right', ncol=1) #loc = 'best'
-
-plt.show()
-"""
