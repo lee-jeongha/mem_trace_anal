@@ -6,8 +6,8 @@ parser.add_argument("--input", "-i", metavar='I', type=str, nargs='?', default='
                     help='input file')
 parser.add_argument("--output", "-o", metavar='O', type=str, nargs='?', default='output.txt',
                     help='output file')
-parser.add_argument("--chunk_size", "-c", metavar='S', type=int, nargs='?', default=10,
-                    help='chunk size')
+parser.add_argument("--chunk_group", "-c", metavar='S', type=int, nargs='?', default=10,
+                    help='# of chunk group')
 args = parser.parse_args()
 
 
@@ -133,7 +133,7 @@ def cal_temp_local(startpoint, endpoint):#, Subsequent=False):
     block_rank, readcnt, writecnt = load_json(startpoint-1)
     #print(block_rank, readcnt, writecnt)
   
-  if(args.chunk_size==1):
+  if(args.chunk_group==1):
     memdf = pd.read_csv(args.input+'_'+str('0')+'.csv', sep=',', header=0, index_col=0, on_bad_lines='skip')
     block_rank, readcnt, writecnt = temp_local(memdf, block_rank, readcnt, writecnt)
     save_json(block_rank, readcnt, writecnt, 0)
@@ -143,11 +143,11 @@ def cal_temp_local(startpoint, endpoint):#, Subsequent=False):
     block_rank, readcnt, writecnt = temp_local(memdf, block_rank, readcnt, writecnt)
     save_json(block_rank, readcnt, writecnt, i)
 
-cal_temp_local(0, args.chunk_size)#, Subsequent=False)
+cal_temp_local(0, args.chunk_group)#, Subsequent=False)
 
 """##**memdf3 graph**"""
 
-block_rank, readcnt, writecnt = load_json(args.chunk_size-1)
+block_rank, readcnt, writecnt = load_json(args.chunk_group-1)
 
 #--
 fig, ax = plt.subplots(2, figsize=(24,20), constrained_layout=True, sharex=True, sharey=True) # sharex=True: share x axis
