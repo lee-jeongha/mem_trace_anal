@@ -176,6 +176,7 @@ fig.supylabel('memory block reference count', fontsize=17)
 plt.savefig(args.output[:-4]+'.png', dpi=300)
 
 if (args.distribution):
+
   plt.clf() # Clear the current figure
 
   fig, ax = plt.subplots(2, figsize=(6,6), constrained_layout=True, sharex=True, sharey=True)
