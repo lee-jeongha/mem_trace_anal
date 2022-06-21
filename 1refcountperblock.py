@@ -6,6 +6,8 @@ parser.add_argument("--input", "-i", metavar='I', type=str, nargs='?', default='
                     help='input file')
 parser.add_argument("--output", "-o", metavar='O', type=str, nargs='?', default='output.txt',
                     help='output file')
+parser.add_argument("--histogram", "-h", action='store_true',
+                    help='plot histogram bound by reference count')
 parser.add_argument("--title", "-t", metavar='T', type=str, nargs='?', default='',
                     help='title of a graph')
 args = parser.parse_args()
@@ -15,6 +17,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import os
+import math
 
 def save_csv(df, filename, index=0):
   try:
@@ -51,7 +54,7 @@ def address_ref(inputdf, concat=False):
   return df
 
 ## 1. use list of chunk
-'''
+"""
 memdf = pd.read_csv('memdf.csv', sep=',', chunksize=1000000, header=0, index_col=0, error_bad_lines=False)
 memdf = list(memdf)
 print(memdf[-1].head)
@@ -63,7 +66,7 @@ for i in range(len(memdf)):
   memdf = pd.read_csv(memdf[i], sep=',', header=0, index_col=0, error_bad_lines=False)
   df = address_ref(memdf, concat=False)
   df1 = pd.concat([df1, df])
-'''
+"""
 
 ## 2. load separate .csv file
 df1 = pd.DataFrame()
@@ -80,27 +83,28 @@ for i in range(100): #under
 
 df1 = address_ref(df1, concat=True)
 
-#only read
-df1['readcount'] = df1['count']
-df1.loc[(df1.type=='write'), 'readcount'] = 0
-#only write
-df1['writecount'] = df1['count']
-df1.loc[(df1.type!='write'), 'writecount'] = 0
-#read and write
+#both read and write
 df1_rw = df1.groupby(by=['blockaddress'], as_index=False).sum()
+df1_rw['type'] = 'read&write'
 
-print(len(df1), len(df1_rw))
-#print(df1, df1_rw)
-
+df1 = pd.concat([df1, df1_rw], sort=True)
 save_csv(df1, args.output, 0)
-save_csv(df1_rw, args.output[:-4]+'_rw.csv', 0)
 
 """**memdf1 graph**
 > Specify the axis range (manual margin adjustment required)
 """
 
 memdf1 = pd.read_csv(args.output, sep=',', header=0, index_col=0, on_bad_lines='skip')
-memdf1_rw = pd.read_csv(args.output[:-4]+'_rw.csv', sep=',', header=0, index_col=0, on_bad_lines='skip')
+
+def digit_length(n):
+    return int(math.log10(n)) + 1 if n else 0
+
+x1 = memdf1['blockaddress'][(memdf1['type']=='read')]
+x2 = memdf1['blockaddress'][(memdf1['type']=='write')]
+x3 = memdf1['blockaddress'][(memdf1['type']=='read&write')]
+y1 = memdf1['count'][(memdf1['type']=='read')]
+y2 = memdf1['count'][(memdf1['type']=='write')]
+y3 = memdf1['count'][(memdf1['type']=='read&write')]
 
 """
 #plt.style.use('default')
@@ -108,19 +112,16 @@ plt.rcParams['figure.figsize'] = (24, 20)
 #plt.rcParams['font.size'] = 12
 
 # scatter
-x = memdf1['blockaddress']
-y1 = memdf1['readcount']
-y2 = memdf1['writecount']
-print(x.min(), x.max())
+print(x1.max(), x2.max())
 print(y1.max(), y2.max())
-plt.axis([0-1e6, memdf1['blockaddress'].max()+1e6, 0-2, max(y1.max(), y2.max())+10]) # [xmin, xmax, ymin, ymax]
+#plt.axis([0-1e6, memdf1['blockaddress'].max()+1e6, 0-2, max(y1.max(), y2.max())+10]) # [xmin, xmax, ymin, ymax]
 
-plt.scatter(x, y1, color='blue', label='read', s=5) #aquamarine
-plt.scatter(x, y2, color='red', label='write', s=5) #salmon
+plt.scatter(x1, y1, color='blue', label='read', s=5) #aquamarine
+plt.scatter(x2, y2, color='red', label='write', s=5) #salmon
 
 # legend
 plt.xlabel('(virtual) memory block address')
-plt.ylabel('memory block access count')
+plt.ylabel('memory block reference count')
 plt.legend(loc='upper right', ncol=1) #loc = 'best'
 #plt.margins(x=5)
 
@@ -130,60 +131,78 @@ plt.show()
 plt.figure(figsize = (12, 10))
 
 # scatter
-x = memdf1['blockaddress']
-x3 = memdf1_rw['blockaddress']
-y1 = memdf1['readcount']
-y2 = memdf1['writecount']
-y3 = memdf1_rw['count']
-print(x.min(), x.max())
+print(x1.max(), x2.max(), x3.max())
 print(y1.max(), y2.max(), y3.max())
-plt.axis([0-1e6, memdf1['blockaddress'].max()+1e6, 0-2, max(y1.max(), y2.max(), y3.max())+10]) # [xmin, xmax, ymin, ymax]
+#plt.axis([0-1e6, memdf1['blockaddress'].max()+1e6, 0-2, max(y1.max(), y2.max(), y3.max())+10]) # [xmin, xmax, ymin, ymax]
 
-plt.scatter(x, y1, color='blue', label='read', s=5)
-plt.scatter(x, y2, color='red', label='write', s=5)
-plt.scatter(x3, y3, color='green', label='read+write', s=5)
+plt.scatter(x1, y1, color='blue', label='read', s=5)
+plt.scatter(x2, y2, color='red', label='write', s=5)
+plt.scatter(x3, y3, color='green', label='read&write', s=5)
 
 # legend
 plt.xlabel('(virtual) memory block address')
-plt.ylabel('memory block access count')
+plt.ylabel('memory block reference count')
 plt.legend(loc='upper right', ncol=1) #loc = 'best'
 #plt.margins(x=5)
 
 plt.show()
 """
-
-fig, ax = plt.subplots(2, figsize=(6,6), constrained_layout=True, sharex=True, sharey=True) # sharex=True
-# figsize=(7,6), 
+fig, ax = plt.subplots(2, figsize=(6,6), constrained_layout=True, sharex=True, sharey=True)
 
 font_size=17
 parameters = {'axes.labelsize': font_size, 'axes.titlesize': font_size, 'xtick.labelsize': font_size, 'ytick.labelsize': font_size}
 plt.rcParams.update(parameters)
+#plt.axis([0-1e6, memdf1['blockaddress'].max()+1e6, 0-2, max(y1.max(), y2.max())+10]) # [xmin, xmax, ymin, ymax]
 
 if args.title != '':
   plt.suptitle(args.title, fontsize=17)
 
-# scatter
-x = memdf1['blockaddress']
-y1 = memdf1['readcount']
-y2 = memdf1['writecount']
-print(x.min(), x.max())
-print(y1.min(), y1.max())
-print(y2.min(), y2.max())
-#plt.axis([0-1e6, memdf1['blockaddress'].max()+1e6, 0-2, max(y1.max(), y2.max())+10]) # [xmin, xmax, ymin, ymax]
+print(x1.max(), x2.max())
+print(y1.min(), y1.max(), digit_length(y1.max()))
+print(y2.min(), y2.max(), digit_length(y2.max()))
 
 # read graph
-ax[0].scatter(x, y1, color='blue', label='read', s=5)
-# legend
-ax[0].set_xlabel('(virtual) memory block address')
-ax[0].set_ylabel('memory block access count')
+ax[0].scatter(x1, y1, color='blue', label='read', s=5)
 ax[0].legend(loc='upper right', ncol=1) #loc = 'best'
 
 # write graph
-ax[1].scatter(x, y2, color='red', label='write', s=5)
-# legend
-ax[1].set_xlabel('(virtual) memory block address')
-ax[1].set_ylabel('memory block access count')
+ax[1].scatter(x2, y2, color='red', label='write', s=5)
 ax[1].legend(loc='upper right', ncol=1) #loc = 'best'
+
+fig.supxlabel('(virtual) memory block address', fontsize=17)
+fig.supylabel('memory block reference count', fontsize=17)
 
 #plt.show()
 plt.savefig(args.output[:-4]+'.png', dpi=300)
+
+if (args.histogram):
+  plt.clf() # Clear the current figure
+
+  fig, ax = plt.subplots(2, figsize=(6,6), constrained_layout=True, sharex=True, sharey=True)
+  plt.xscale('log')
+
+  if args.title != '':
+    plt.suptitle(args.title, fontsize=17)
+
+  if(y1.max() < y2.max()):
+    bin_list = [0]
+    bin_list.extend([ 10**i for i in range(digit_length(y1.max()) + 1) ])
+  else:
+    bin_list = [0]
+    bin_list.extend([ 10**i for i in range(digit_length(y2.max()) + 1) ])
+
+  # read graph
+  height1, _, _ = ax[0].hist(y1, color='blue', edgecolor='black', label='read', bins=bin_list, cumulative=False, density=False)
+  print(height1)
+  ax[0].legend(loc='upper right', ncol=1) #loc = 'best'
+
+  # write graph
+  height2, _, _ = ax[1].hist(y2, color='red', edgecolor='black', label='write', bins=bin_list, cumulative=False, density=False)
+  print(height2)
+  ax[1].legend(loc='upper right', ncol=1) #loc = 'best'
+
+  fig.supxlabel('reference count', fontsize=17 )
+  fig.supylabel('# of memory block', fontsize=17)
+
+  #plt.show()
+  plt.savefig(args.output[:-4]+'_hist.png', dpi=300)
