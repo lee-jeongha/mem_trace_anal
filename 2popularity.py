@@ -28,55 +28,55 @@ def save_csv(df, filename, index=0):
     #if not os.path.exists(path):
     target_dir = filename.rfind('/')
     path = filename[:target_dir]
-    os.mkdir(path)
+    os.makedirs(path)
     #---
     if index==0:
       df.to_csv(filename, index=True, header=True, mode='w') # encoding='utf-8-sig'
     else: #append mode
       df.to_csv(filename, index=True, header=False, mode='a') # encoding='utf-8-sig'
 
-"""##**memdf2 = tendency of memory block access**
-**memdf2.1**
+"""##**memdf2 = tendency of memory block access**"""
+memdf2 = pd.read_csv(args.input, sep=',', header=0, index_col=0, on_bad_lines='skip')
+
+"""memdf2.1
 * x axis : ranking by references count
 * y axis : reference count
+"""
+# ranking
+read_rank = memdf2['count'][(memdf2['type']=='read')].rank(ascending=False)
+memdf2.loc[(memdf2['type']=='read'), ['type_rank']] = read_rank
 
-**memdf2.2**
+write_rank = memdf2['count'][(memdf2['type']=='write')].rank(ascending=False)
+memdf2.loc[(memdf2['type']=='write'), ['type_rank']] = write_rank
+
+rw_rank = memdf2['count'][(memdf2['type']=='read&write')].rank(ascending=False)
+memdf2.loc[(memdf2['type']=='read&write'), ['type_rank']] = rw_rank
+
+"""memdf2.2
 * x axis : ranking by % of reference count (in percentile form)
 * y axis : % of reference count
 """
-
-"""memdf2.1"""
-
-memdf2 = pd.read_csv(args.input, sep=',', header=0, index_col=0, on_bad_lines='skip')
-memdf2_rw = pd.read_csv(args.input[:-4]+'_rw.csv', sep=',', header=0, index_col=0, on_bad_lines='skip')
-
-# ranking
-memdf2['read_rank'] = memdf2['readcount'].rank(ascending=False)
-memdf2['write_rank'] = memdf2['writecount'].rank(ascending=False)
-memdf2_rw['rw_rank'] = memdf2_rw['count'].rank(ascending=False)
-#print(memdf2)
-#print(memdf2_rw)
-
-"""memdf2.2"""
-
-total_read = memdf2['readcount'].sum()
-total_write = memdf2['writecount'].sum()
-total_rw = memdf2_rw['count'].sum()
-#print(total_read, total_write, total_rw)
+total_read = memdf2['count'][(memdf2['type']=='read')].sum()
+total_write = memdf2['count'][(memdf2['type']=='write')].sum()
+total_rw = memdf2['count'][(memdf2['type']=='read&write')].sum()
 
 # percentage
-memdf2['readpcnt'] = (memdf2['readcount'] / total_read)
-memdf2['writepcnt'] = (memdf2['writecount'] / total_write)
-memdf2_rw['rwpcnt'] = (memdf2_rw['count'] / total_rw)
+memdf2['type_pcnt'] = memdf2['count']
+memdf2.loc[(memdf2['type']=='read'), ['type_pcnt']] /= total_read
+memdf2.loc[(memdf2['type']=='write'), ['type_pcnt']] /= total_write
+memdf2.loc[(memdf2['type']=='read&write'), ['type_pcnt']] /= total_rw
 
 # ranking in percentile form
-memdf2['read_rank_pcnt'] = memdf2['readpcnt'].rank(ascending=False, pct=True)
-memdf2['write_rank_pcnt'] = memdf2['writepcnt'].rank(ascending=False, pct=True)
-memdf2_rw['rw_rank_pcnt'] = memdf2_rw['rwpcnt'].rank(ascending=False, pct=True)
-#print(memdf2)
-#print(memdf2_rw)
+read_rank = memdf2['type_pcnt'][(memdf2['type']=='read')].rank(ascending=False, pct=True)
+memdf2.loc[(memdf2['type']=='read'), ['type_pcnt_rank']] = read_rank
+
+write_rank = memdf2['type_pcnt'][(memdf2['type']=='write')].rank(ascending=False, pct=True)
+memdf2.loc[(memdf2['type']=='write'), ['type_pcnt_rank']] = write_rank
+
+rw_rank = memdf2['type_pcnt'][(memdf2['type']=='read&write')].rank(ascending=False, pct=True)
+memdf2.loc[(memdf2['type']=='read&write'), ['type_pcnt_rank']] = rw_rank
+
 save_csv(memdf2, args.output, 0)
-save_csv(memdf2_rw, args.output[:-4]+'_rw.csv', 0)
 
 """zipf"""
 
@@ -101,21 +101,20 @@ if args.zipf:
 """memdf2.1 graph"""
 
 #memdf2 = pd.read_csv(args.output, sep=',', header=0, index_col=0, on_bad_lines='skip')
-#memdf2_rw = pd.read_csv(args.output[:-4]+'_rw.csv', sep=',', header=0, index_col=0, on_bad_lines='skip')
+
+#read
+x1 = memdf2['type_rank'][(memdf2['type']=='read')]
+y1 = memdf2['count'][(memdf2['type']=='read')]
+#write
+x2 = memdf2['type_rank'][(memdf2['type']=='write')]
+y2 = memdf2['count'][(memdf2['type']=='write')]
+#read&write
+x3 = memdf2['type_rank'][(memdf2['type']=='read&write')]
+y3 = memdf2['count'][(memdf2['type']=='read&write')]
 
 """
 plt.figure(figsize=(12,10))
 plt.rcParams.update({'font.size': 17})
-
-#read
-x1 = memdf2['read_rank']
-y1 = memdf2['readcount']
-#write
-x2 = memdf2['write_rank']
-y2 = memdf2['writecount']
-#read+write
-x3 = memdf2_rw['rw_rank']
-y3 = memdf2_rw['count']
 
 #scatter
 plt.scatter(x1, y1, color='blue', label='read', s=7)
@@ -164,46 +163,31 @@ plt.rcParams.update(parameters)
 
 if args.title != '':
   plt.suptitle(args.title, fontsize=17)
-
-#read
-x1 = memdf2['read_rank']
-y1 = memdf2['readcount']
-#write
-x2 = memdf2['write_rank']
-y2 = memdf2['writecount']
-#read+write
-x3 = memdf2_rw['rw_rank']
-y3 = memdf2_rw['count']
+plt.ylim([0.5,1e5])
+plt.xscale('log')
+plt.yscale('log')
 
 # read/write graph
 ax[0].scatter(x1, y1, color='blue', label='read', s=5)
 ax[0].scatter(x2, y2, color='red', label='write', s=5)
-
 if args.zipf:
   s_best1 = zipf_param(y1)
   s_best2 = zipf_param(y2)
   ax[0].plot(x1, func_powerlaw(x1, *s_best1), color="skyblue", lw=2, label="curve_fitting: read")
   ax[0].plot(x2, func_powerlaw(x2, *s_best2), color="salmon", lw=2, label="curve_fitting: write")
-
-# legend
-ax[0].set_xlabel('ranking')
-ax[0].set_ylabel('memory block access count')
 ax[0].legend(loc='lower left', ncol=1) #loc = 'best', 'upper right', (1.0,0.8)
 
 # read+write graph
 ax[1].scatter(x3, y3, color='green', label='read&write', s=5)
-ax[1].set_ylim([0.5,1e5])
-ax[1].set_xscale('log')
-ax[1].set_yscale('log')
-
 if args.zipf:
   s_best3 = zipf_param(y3)
   ax[1].plot(x3, func_powerlaw(x3, *s_best3), color="limegreen", lw=2, label = "curve_fitting: read&write")
-
-# legend
-ax[1].set_xlabel('ranking')
-ax[1].set_ylabel('memory block access count')
 ax[1].legend(loc='lower left', ncol=1) #loc = 'best', 'upper right', (1.0,0.8)
+
+print(s_best1, s_best2, s_best3)
+
+fig.supxlabel('rank', fontsize=17)
+fig.supylabel('memory block reference count', fontsize=17)
 
 #plt.show()
 plt.savefig(args.output[:-4]+'.png', dpi=300)
@@ -215,14 +199,14 @@ plt.savefig(args.output[:-4]+'.png', dpi=300)
 #plt.figure(figsize=(12,10))
 
 #read
-x1 = memdf2['read_rank_pcnt']
-y1 = memdf2['readpcnt']
+x1 = memdf2['type_pcnt_rank'][(memdf2['type']=='read')]
+y1 = memdf2['type_pcnt'][(memdf2['type']=='read')]
 #write
-x2 = memdf2['write_rank_pcnt']
-y2 = memdf2['writepcnt']
-#read+write
-x3 = memdf2_rw['rw_rank_pcnt']
-y3 = memdf2_rw['rwpcnt']
+x2 = memdf2['type_pcnt_rank'][(memdf2['type']=='write')]
+y2 = memdf2['type_pcnt'][(memdf2['type']=='write')]
+#read&write
+x3 = memdf2['type_pcnt_rank'][(memdf2['type']=='read&write')]
+y3 = memdf2['type_pcnt'][(memdf2['type']=='read&write')]
 
 #scatter
 plt.scatter(x1, y1, color='blue', label='read', s=5)
