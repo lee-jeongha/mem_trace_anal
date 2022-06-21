@@ -18,7 +18,7 @@ import pandas as pd
 import numpy as np
 import os
 import math
-
+'''
 def save_csv(df, filename, index=0):
   try:
     if index==0:
@@ -29,7 +29,7 @@ def save_csv(df, filename, index=0):
     #if not os.path.exists(path):
     target_dir = filename.rfind('/')
     path = filename[:target_dir]
-    os.mkdir(path)
+    os.makedirs(path)
     #---
     if index==0:
       df.to_csv(filename, index=True, header=True, mode='w') # encoding='utf-8-sig'
@@ -89,7 +89,7 @@ df1_rw['type'] = 'read&write'
 
 df1 = pd.concat([df1, df1_rw], sort=True)
 save_csv(df1, args.output, 0)
-
+'''
 """**memdf1 graph**
 > Specify the axis range (manual margin adjustment required)
 """
@@ -185,21 +185,32 @@ if (args.distribution):
   if args.title != '':
     plt.suptitle(args.title, fontsize=17)
 
+  bin_list = [1, 2]
   if(y1.max() < y2.max()):
-    bin_list = [0]
-    bin_list.extend([ 10**i for i in range(digit_length(y1.max()) + 1) ])
+    bin_list.extend([ 10**i for i in range(1, digit_length(y1.max()) + 1) ])
   else:
-    bin_list = [0]
-    bin_list.extend([ 10**i for i in range(digit_length(y2.max()) + 1) ])
+    bin_list.extend([ 10**i for i in range(1, digit_length(y2.max()) + 1) ])
+
+  """
+  # right = True : bins[i-1] < x <= bins[i] / bins[i-1] >= x > bins[i]
+  dist1 = np.digitize(y1, bin_list, right=True)
+  dist2 = np.digitize(y2, bin_list, right=True)
+
+  hist1 = np.bincount(dist1)
+  hist2 = np.bincount(dist2)
+  
+  ax[0].bar(np.arange(len(bin_list)), hist1, color='blue', edgecolor='black', label='read')
+  ax[0].set_xticks(np.arange(len(bin_list)), bin_list)
+  ax[1].bar(np.arange(len(bin_list)), hist2, color='red', edgecolor='black', label='write')
+  ax[1].set_xticks(np.arange(len(bin_list)), bin_list)
+  """
 
   # read graph
-  height1, _, _ = ax[0].hist(y1, color='blue', edgecolor='black', label='read', bins=bin_list, cumulative=False, density=False)
-  print(height1)
+  ax[0].hist(y1, bins=bin_list, density=True, rwidth=3, color='blue', edgecolor='black', label='read')
   ax[0].legend(loc='upper right', ncol=1) #loc = 'best'
 
   # write graph
-  height2, _, _ = ax[1].hist(y2, color='red', edgecolor='black', label='write', bins=bin_list, cumulative=False, density=False)
-  print(height2)
+  ax[1].hist(y2, bins=bin_list, density=True, rwidth=3, color='red', edgecolor='black', label='write')
   ax[1].legend(loc='upper right', ncol=1) #loc = 'best'
 
   fig.supxlabel('reference count', fontsize=17 )
