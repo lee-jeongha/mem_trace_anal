@@ -186,7 +186,7 @@ if (args.distribution):
     plt.suptitle(args.title, fontsize=17)
 
   bin_list = [1, 2]
-  if(y1.max() < y2.max()):
+  if(y1.max() > y2.max()):
     bin_list.extend([ 10**i for i in range(1, digit_length(y1.max()) + 1) ])
   else:
     bin_list.extend([ 10**i for i in range(1, digit_length(y2.max()) + 1) ])
@@ -206,14 +206,14 @@ if (args.distribution):
   """
 
   # read graph
-  counts, edges, bars = ax[0].hist(y1, bins=bin_list, density=True, rwidth=3, color='blue', edgecolor='black', label='read')
+  counts, edges, bars = ax[0].hist(y1, bins=bin_list, density=False, rwidth=3, color='blue', edgecolor='black', label='read')
   ax[0].legend(loc='upper right', ncol=1) #loc = 'best'
-  ax[0].bar_label(bars)
+  ax[0].bar_label(bars, label_type='edge')
 
   # write graph
-  counts, edges, bars = ax[1].hist(y2, bins=bin_list, density=True, rwidth=3, color='red', edgecolor='black', label='write')
+  counts, edges, bars = ax[1].hist(y2, bins=bin_list, density=False, rwidth=3, color='red', edgecolor='black', label='write')
   ax[1].legend(loc='upper right', ncol=1) #loc = 'best'
-  ax[1].bar_label(bars)
+  ax[1].bar_label(bars, label_type='edge')
 
   fig.supxlabel('reference count', fontsize=17 )
   fig.supylabel('# of memory block', fontsize=17)
