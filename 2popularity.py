@@ -170,21 +170,24 @@ plt.yscale('log')
 # read/write graph
 ax[0].scatter(x1, y1, color='blue', label='read', s=5)
 ax[0].scatter(x2, y2, color='red', label='write', s=5)
-if args.zipf:
-  s_best1 = zipf_param(y1)
-  s_best2 = zipf_param(y2)
-  ax[0].plot(x1, func_powerlaw(x1, *s_best1), color="skyblue", lw=2, label="curve_fitting: read")
-  ax[0].plot(x2, func_powerlaw(x2, *s_best2), color="salmon", lw=2, label="curve_fitting: write")
-ax[0].legend(loc='lower left', ncol=1) #loc = 'best', 'upper right', (1.0,0.8)
 
 # read+write graph
 ax[1].scatter(x3, y3, color='green', label='read&write', s=5)
-if args.zipf:
-  s_best3 = zipf_param(y3)
-  ax[1].plot(x3, func_powerlaw(x3, *s_best3), color="limegreen", lw=2, label = "curve_fitting: read&write")
-ax[1].legend(loc='lower left', ncol=1) #loc = 'best', 'upper right', (1.0,0.8)
 
-print(s_best1, s_best2, s_best3)
+if args.zipf:
+  s_best1 = zipf_param(y1)
+  s_best2 = zipf_param(y2)
+  s_best3 = zipf_param(y3)
+
+  ax[0].plot(x1, func_powerlaw(x1, *s_best1), color="skyblue", lw=2, label="curve_fitting: read")
+  ax[0].plot(x2, func_powerlaw(x2, *s_best2), color="salmon", lw=2, label="curve_fitting: write")
+
+  ax[1].plot(x3, func_powerlaw(x3, *s_best3), color="limegreen", lw=2, label = "curve_fitting: read&write")
+
+  print(s_best1, s_best2, s_best3)
+
+ax[0].legend(loc='lower left', ncol=1) #loc = 'best', 'upper right', (1.0,0.8)
+ax[1].legend(loc='lower left', ncol=1) #loc = 'best', 'upper right', (1.0,0.8)
 
 fig.supxlabel('rank', fontsize=17)
 fig.supylabel('memory block reference count', fontsize=17)
@@ -194,30 +197,37 @@ plt.savefig(args.output[:-4]+'.png', dpi=300)
 
 
 """memdf2.2 graph"""
+plt.cla()
 
-"""
-#plt.figure(figsize=(12,10))
+plt.figure(figsize=(8,7))
+plt.rcParams.update({'font.size': 17})
+if args.title != '':
+  plt.title(args.title, fontsize=17)
+plt.grid(True, color='black', alpha=0.5, linestyle='--')
 
 #read
-x1 = memdf2['type_pcnt_rank'][(memdf2['type']=='read')]
-y1 = memdf2['type_pcnt'][(memdf2['type']=='read')]
+y1 = memdf2['type_pcnt'][(memdf2['type']=='read')].sort_values(ascending=False).cumsum()
+x1 = np.arange(len(y1))
+x1 = (x1 / len(y1))
 #write
-x2 = memdf2['type_pcnt_rank'][(memdf2['type']=='write')]
-y2 = memdf2['type_pcnt'][(memdf2['type']=='write')]
+y2 = memdf2['type_pcnt'][(memdf2['type']=='write')].sort_values(ascending=False).cumsum()
+x2 = np.arange(len(y2))
+x2 = (x2 / len(y2))
 #read&write
-x3 = memdf2['type_pcnt_rank'][(memdf2['type']=='read&write')]
-y3 = memdf2['type_pcnt'][(memdf2['type']=='read&write')]
+y3 = memdf2['type_pcnt'][(memdf2['type']=='read&write')].sort_values(ascending=False).cumsum()
+x3 = np.arange(len(y3))
+x3 = (x3 / len(y3))
 
 #scatter
 plt.scatter(x1, y1, color='blue', label='read', s=5)
 plt.scatter(x2, y2, color='red', label='write', s=5)
-plt.scatter(x3, y3, color='green', label='read+write', s=5)
+plt.scatter(x3, y3, color='green', label='read&write', s=5)
 
 # legend
-plt.xlabel('ranking (in % form)')
+plt.xlabel('rank (in % form)')
 plt.ylabel('% of reference count')
-plt.legend(loc='upper right', ncol=1)
+plt.legend(loc='lower right', ncol=1)
 
-plt.show()
-#plt.savefig(args.output[:-4]+'.png', dpi=300)
-"""
+#plt.show()
+plt.savefig(args.output[:-4]+'_pareto.png', dpi=300)
+
