@@ -112,19 +112,22 @@ y2 = memdf2['count'][(memdf2['type']=='write')]
 x3 = memdf2['type_rank'][(memdf2['type']=='read&write')]
 y3 = memdf2['count'][(memdf2['type']=='read&write')]
 
-"""
-plt.figure(figsize=(12,10))
-plt.rcParams.update({'font.size': 17})
-
-#scatter
-plt.scatter(x1, y1, color='blue', label='read', s=7)
-plt.scatter(x2, y2, color='red', label='write', s=7)
-plt.scatter(x3, y3, color='green', label='read&write', s=7)
-plt.xscale('log')
-plt.yscale('log')
-plt.ylim([0.5,1e5])
-
 if args.zipf:
+  plt.figure(figsize=(12,10))
+  plt.rcParams.update({'font.size': 17})
+
+  if args.title != '':
+    plt.title(args.title, fontsize=25)
+  plt.ylim([0.5, 1e5])
+  plt.xscale('log')
+  plt.yscale('log')
+
+  #scatter
+  plt.scatter(x1, y1, color='blue', label='read', s=7)
+  plt.scatter(x2, y2, color='red', label='write', s=7)
+  plt.scatter(x3, y3, color='green', label='read&write', s=7)
+
+  #curve fitting
   s_best1 = zipf_param(y1)
   s_best2 = zipf_param(y2)
   s_best3 = zipf_param(y3)
@@ -141,59 +144,45 @@ if args.zipf:
   plt.annotate(str(round(s_best3[0],5)), xy=(100, func_powerlaw(100, *s_best3)), xycoords='data',
                xytext=(-10.0, -50.0), textcoords="offset points", color="olivedrab", size=13,  # xytext=(-80.0, -50.0)
                arrowprops=dict(arrowstyle="->", ls="--", color="olivedrab", connectionstyle="arc3,rad=-0.2"))
-               
-# legend
-plt.xlabel('ranking')
-plt.ylabel('memory block access count')
-plt.legend(loc='lower left', ncol=1)
-
-if args.title != '':
-  plt.title(args.title, fontsize=25)
-
-# plt.show()
-plt.savefig(args.output[:-4]+'.png', dpi=300)
-"""
-
-fig, ax = plt.subplots(2, figsize=(7,8), constrained_layout=True, sharex=True, sharey=True) # sharex=True: share x axis
-# figsize=(11,10), 
-
-font_size=20
-parameters = {'axes.labelsize': font_size, 'axes.titlesize': font_size, 'xtick.labelsize': font_size, 'ytick.labelsize': font_size}
-plt.rcParams.update(parameters)
-
-if args.title != '':
-  plt.suptitle(args.title, fontsize=17)
-plt.ylim([0.5,1e5])
-plt.xscale('log')
-plt.yscale('log')
-
-# read/write graph
-ax[0].scatter(x1, y1, color='blue', label='read', s=5)
-ax[0].scatter(x2, y2, color='red', label='write', s=5)
-
-# read+write graph
-ax[1].scatter(x3, y3, color='green', label='read&write', s=5)
-
-if args.zipf:
-  s_best1 = zipf_param(y1)
-  s_best2 = zipf_param(y2)
-  s_best3 = zipf_param(y3)
-
-  ax[0].plot(x1, func_powerlaw(x1, *s_best1), color="skyblue", lw=2, label="curve_fitting: read")
-  ax[0].plot(x2, func_powerlaw(x2, *s_best2), color="salmon", lw=2, label="curve_fitting: write")
-
-  ax[1].plot(x3, func_powerlaw(x3, *s_best3), color="limegreen", lw=2, label = "curve_fitting: read&write")
-
   print(s_best1, s_best2, s_best3)
 
-ax[0].legend(loc='lower left', ncol=1) #loc = 'best', 'upper right', (1.0,0.8)
-ax[1].legend(loc='lower left', ncol=1) #loc = 'best', 'upper right', (1.0,0.8)
+  # legend
+  plt.xlabel('ranking')
+  plt.ylabel('memory block access count')
+  plt.legend(loc='lower left', ncol=1)
 
-fig.supxlabel('rank', fontsize=17)
-fig.supylabel('memory block reference count', fontsize=17)
+  # plt.show()
+  plt.savefig(args.output[:-4]+'.png', dpi=300)
 
-#plt.show()
-plt.savefig(args.output[:-4]+'.png', dpi=300)
+else:
+  fig, ax = plt.subplots(2, figsize=(7,8), constrained_layout=True, sharex=True, sharey=True) # sharex=True: share x axis
+  # figsize=(11,10),
+
+  font_size=20
+  parameters = {'axes.labelsize': font_size, 'axes.titlesize': font_size, 'xtick.labelsize': font_size, 'ytick.labelsize': font_size}
+  plt.rcParams.update(parameters)
+
+  if args.title != '':
+    plt.suptitle(args.title, fontsize=17)
+  plt.ylim([0.5,1e5])
+  plt.xscale('log')
+  plt.yscale('log')
+
+  # read/write graph
+  ax[0].scatter(x1, y1, color='blue', label='read', s=5)
+  ax[0].scatter(x2, y2, color='red', label='write', s=5)
+
+  # read+write graph
+  ax[1].scatter(x3, y3, color='green', label='read&write', s=5)
+
+  ax[0].legend(loc='lower left', ncol=1) #loc = 'best', 'upper right', (1.0,0.8)
+  ax[1].legend(loc='lower left', ncol=1) #loc = 'best', 'upper right', (1.0,0.8)
+
+  fig.supxlabel('rank', fontsize=17)
+  fig.supylabel('memory block reference count', fontsize=17)
+
+  #plt.show()
+  plt.savefig(args.output[:-4]+'.png', dpi=300)
 
 
 """memdf2.2 graph"""
