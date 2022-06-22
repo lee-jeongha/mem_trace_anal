@@ -18,7 +18,7 @@ import pandas as pd
 import numpy as np
 import os
 import math
-'''
+
 def save_csv(df, filename, index=0):
   try:
     if index==0:
@@ -89,7 +89,7 @@ df1_rw['type'] = 'read&write'
 
 df1 = pd.concat([df1, df1_rw], sort=True)
 save_csv(df1, args.output, 0)
-'''
+
 """**memdf1 graph**
 > Specify the axis range (manual margin adjustment required)
 """
@@ -206,12 +206,14 @@ if (args.distribution):
   """
 
   # read graph
-  ax[0].hist(y1, bins=bin_list, density=True, rwidth=3, color='blue', edgecolor='black', label='read')
+  counts, edges, bars = ax[0].hist(y1, bins=bin_list, density=True, rwidth=3, color='blue', edgecolor='black', label='read')
   ax[0].legend(loc='upper right', ncol=1) #loc = 'best'
+  ax[0].bar_label(bars)
 
   # write graph
-  ax[1].hist(y2, bins=bin_list, density=True, rwidth=3, color='red', edgecolor='black', label='write')
+  counts, edges, bars = ax[1].hist(y2, bins=bin_list, density=True, rwidth=3, color='red', edgecolor='black', label='write')
   ax[1].legend(loc='upper right', ncol=1) #loc = 'best'
+  ax[1].bar_label(bars)
 
   fig.supxlabel('reference count', fontsize=17 )
   fig.supylabel('# of memory block', fontsize=17)
