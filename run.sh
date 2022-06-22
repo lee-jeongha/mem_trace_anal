@@ -3,6 +3,7 @@
 # options:
 INPUT_FILE=""
 OUTPUT_DIR=""
+TITLE=""
 
 # get options:
 while (( "$#" )); do
@@ -25,11 +26,20 @@ while (( "$#" )); do
                 exit 1
             fi
             ;;        
+        -t|--title)
+            if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
+                TITLE=$2
+                shift 2
+            else
+                echo "Error: Argument for $1 is missing" >&2
+                exit 1
+            fi
+            ;;
         -h|--help)
             echo "Usage:  $0 -i <input> [options]" >&2
             echo "        -i | --input  %  (input file name)" >&2
             echo "        -o | --output  %  (output directory name)" >&2
-	    exit 0
+	          exit 0
             ;;
         -*|--*) # unsupported flags
             echo "Error: Unsupported flag: $1" >&2
@@ -45,7 +55,9 @@ while (( "$#" )); do
 done
 
 # find path
-CODE_PATH=${0:0:-7}
+#CODE_PATH=${0:0:-7}
+CODE_PATH=${0:0:$((${#0} - 0 - 7))}
+echo $CODE_PATH
 
 # make directory
 mkdir $OUTPUT_DIR
@@ -58,19 +70,20 @@ echo =====0preprocess.py is done!=====
 
 # reference count per block
 type1="$OUTPUT_DIR/memdf1/memdf1.csv"
-python3 $CODE_PATH/1refcountperblock.py -i ${type0::(-4)} -o $type1
+#python3 $CODE_PATH/1refcountperblock.py -i ${type0::(-4)} -o $type1 -d -t $TITLE
+python3 $CODE_PATH/1refcountperblock.py -i ${type0::$((${#type0}-4))} -o $type1 -d -t $TITLE
 echo =====1refcountperblock.py is done!=====
 
 # popularity
 type2="$OUTPUT_DIR/memdf2/memdf2.csv"
-python3 $CODE_PATH/2popularity.py -i $type1 -o $type2
+python3 $CODE_PATH/2popularity.py -i $type1 -o $type2 -z -t $TITLE
 echo =====2popularity.py is done!=====
 
 # lru
 type3="$OUTPUT_DIR/memdf3/memdf3.csv"
 chunk_dir="$OUTPUT_DIR/memdf0"
 chunk_nu=$(expr `ls -l $chunk_dir | grep ^- 2>/dev/null | wc -l` - 1)
-python3 $CODE_PATH/3lru.py -i ${type0::(-4)} -o $type3 -c $chunk_nu
+python3 $CODE_PATH/3lru.py -i ${type0::(-4)} -o $type3 -c $chunk_nu -t $TITLE
 echo =====3lru.py is done!=====
 
 # memory access per logical time
