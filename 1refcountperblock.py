@@ -106,47 +106,6 @@ y1 = memdf1['count'][(memdf1['type']=='read')]
 y2 = memdf1['count'][(memdf1['type']=='write')]
 y3 = memdf1['count'][(memdf1['type']=='read&write')]
 
-"""
-#plt.style.use('default')
-plt.rcParams['figure.figsize'] = (24, 20)
-#plt.rcParams['font.size'] = 12
-
-# scatter
-print(x1.max(), x2.max())
-print(y1.max(), y2.max())
-#plt.axis([0-1e6, memdf1['blockaddress'].max()+1e6, 0-2, max(y1.max(), y2.max())+10]) # [xmin, xmax, ymin, ymax]
-
-plt.scatter(x1, y1, color='blue', label='read', s=5) #aquamarine
-plt.scatter(x2, y2, color='red', label='write', s=5) #salmon
-
-# legend
-plt.xlabel('(virtual) memory block address')
-plt.ylabel('memory block reference count')
-plt.legend(loc='upper right', ncol=1) #loc = 'best'
-#plt.margins(x=5)
-
-plt.show()
-"""
-"""
-plt.figure(figsize = (12, 10))
-
-# scatter
-print(x1.max(), x2.max(), x3.max())
-print(y1.max(), y2.max(), y3.max())
-#plt.axis([0-1e6, memdf1['blockaddress'].max()+1e6, 0-2, max(y1.max(), y2.max(), y3.max())+10]) # [xmin, xmax, ymin, ymax]
-
-plt.scatter(x1, y1, color='blue', label='read', s=5)
-plt.scatter(x2, y2, color='red', label='write', s=5)
-plt.scatter(x3, y3, color='green', label='read&write', s=5)
-
-# legend
-plt.xlabel('(virtual) memory block address')
-plt.ylabel('memory block reference count')
-plt.legend(loc='upper right', ncol=1) #loc = 'best'
-#plt.margins(x=5)
-
-plt.show()
-"""
 fig, ax = plt.subplots(2, figsize=(6,6), constrained_layout=True, sharex=True, sharey=True)
 
 font_size=17
@@ -179,7 +138,7 @@ if (args.distribution):
 
   plt.clf() # Clear the current figure
 
-  fig, ax = plt.subplots(2, figsize=(6,6), constrained_layout=True, sharex=True, sharey=True)
+  fig, ax = plt.subplots(2, 2, figsize=(6,6), constrained_layout=True, sharex=True)#, sharey=True)
   plt.xscale('log')
 
   if args.title != '':
@@ -206,17 +165,28 @@ if (args.distribution):
   """
 
   # read graph
-  counts, edges, bars = ax[0].hist(y1, bins=bin_list, density=False, rwidth=3, color='blue', edgecolor='black', label='read')
-  ax[0].legend(loc='upper right', ncol=1) #loc = 'best'
-  ax[0].bar_label(bars, label_type='edge')
+  counts, edges, bars = ax[0][0].hist(y1, bins=bin_list, density=False, rwidth=3, color='blue', edgecolor='black', label='read')
+  ax[0][0].legend(loc='upper right', ncol=1) #loc = 'best'
+  ax[0][0].bar_label(bars, label_type='edge')
 
   # write graph
-  counts, edges, bars = ax[1].hist(y2, bins=bin_list, density=False, rwidth=3, color='red', edgecolor='black', label='write')
-  ax[1].legend(loc='upper right', ncol=1) #loc = 'best'
-  ax[1].bar_label(bars, label_type='edge')
+  counts, edges, bars = ax[1][0].hist(y2, bins=bin_list, density=False, rwidth=3, color='red', edgecolor='black', label='write')
+  ax[1][0].legend(loc='upper right', ncol=1) #loc = 'best'
+  ax[1][0].bar_label(bars, label_type='edge')
 
-  fig.supxlabel('reference count', fontsize=17 )
+  """normalized graph"""
+  # read graph
+  counts, edges, bars = ax[0][1].hist(y1, bins=bin_list, density=True, rwidth=3, color='blue', edgecolor='black', label='read')
+  ax[0][1].legend(loc='upper right', ncol=1)  # loc = 'best'
+  ax[0][1].bar_label(bars, label_type='edge')
+
+  # write graph
+  counts, edges, bars = ax[1][1].hist(y2, bins=bin_list, density=True, rwidth=3, color='red', edgecolor='black', label='write')
+  ax[1][1].legend(loc='upper right', ncol=1)  # loc = 'best'
+  ax[1][1].bar_label(bars, label_type='edge')
+
+  fig.supxlabel('reference count', fontsize=17)
   fig.supylabel('# of memory block', fontsize=17)
 
   #plt.show()
-  plt.savefig(args.output[:-4]+'_hist.png', dpi=300)
+  plt.savefig(args.output[:-4]+'_hist-norm.png', dpi=300)
