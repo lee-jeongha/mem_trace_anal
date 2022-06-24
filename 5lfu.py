@@ -62,19 +62,51 @@ class LFUCache(object):
         self.cache = {}  # {addr: freq_node}
         self.freq_link_head = None
 
+    def get(self):
+        ref_table = {}  # {freq: [ref_block]}
+        current = self.freq_link_head
+
+        while current != None:
+            freq = current.freq
+            ref_block = current.ref_block
+            ref_table[freq] = ref_block
+            current = current.nxt
+
+        return ref_table
+
+    def set(self, ref_table):
+        freqs = list(ref_table.keys())
+        freqs.sort()
+
+        prev_freq_node = None
+        for freq in freqs:
+            ref_block = ref_table[freq]
+            target_freq_node = FreqNode(freq, ref_block, None, None)
+
+            if prev_freq_node == None:
+                self.freq_link_head = target_freq_node
+            else:
+                target_freq_node.pre = prev_freq_node
+                prev_freq_node.nxt = target_freq_node
+
+            for ref_addr in ref_block:
+                self.cache[ref_addr] = target_freq_node
+
+            prev_freq_node = target_freq_node
+
     def reference(self, ref_address):
         if ref_address in self.cache:
-            freq = self.cache[i]
-            new_freq = self.move_next_to(i, freq)
+            freq = self.cache[ref_address]
+            new_freq = self.move_next_to(ref_address, freq)
             rank = self.get_freqs_rank(new_freq)
 
-            self.cache[i] = new_freq
+            self.cache[ref_address] = new_freq
 
             return rank
         
         else:
-            freq = self.create_freq_node(i)
-            self.cache[i] = freq
+            freq = self.create_freq_node(ref_address)
+            self.cache[ref_address] = freq
             
             return -1
 
@@ -122,19 +154,54 @@ class LFUCache(object):
             return self.freq_link_head
     
     def get_freqs_rank(self, freq_node):
-        
-        current_freq_node = freq_node.nxt
+        current = freq_node.nxt
         rank = 1
 
-        while current_freq_node != None:
-            rank += current_freq_node.count_blocks()
-            current_freq_node = current_freq_node.nxt
+        while current != None:
+            rank += current.count_blocks()
+            current = current.nxt
 
         return rank
 
+
+# -*- coding: utf-8 -*-
+
+import argparse
+parser = argparse.ArgumentParser(description="plot lru graph from log file")
+parser.add_argument("--input", "-i", metavar='I', type=str, nargs='?', default='input.txt',
+                    help='input file')
+parser.add_argument("--output", "-o", metavar='O', type=str, nargs='?', default='output.txt',
+                    help='output file')
+parser.add_argument("--chunk_group", "-c", metavar='S', type=int, nargs='?', default=10,
+                    help='# of chunk group')
+parser.add_argument("--title", "-t", metavar='T', type=str, nargs='?', default='',
+                    help='title of a graph')
+args = parser.parse_args()
+
+
+import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
+import os
+import json
+
+
 lfu = LFUCache()
+lfu1 = LFUCache()
 
 address = [2,3,1,2,3,2,2,2,2,3,2,7,7,3,7,7,1]
 for i in address:
     rank = lfu.reference(i)
-    print(i, lfu.cache[i].freq, rank)
+
+cache = lfu.get()
+lfu1.set(cache)
+
+rank1 = lfu.reference(4)
+rank2 = lfu.reference(5)
+cache = lfu.get()
+print(cache, rank1, rank2)
+
+rank3 = lfu1.reference(3)
+rank4 = lfu1.reference(8)
+cache1 = lfu1.get()
+print(cache1, rank3, rank4)
