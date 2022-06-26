@@ -185,23 +185,146 @@ import numpy as np
 import os
 import json
 
+def temp_local(df, block_rank, readcnt, writecnt):
+    for index, row in df.iterrows():  ### one by one
+        ### type과 rank 맞춰서 readcnt/writecnt 수정
+        acc_rank = block_rank.reference(row['blockaddress'])
+        if acc_rank == -1:
+            continue
+        else:
+            if (row['type'] == 'readi' or row['type'] == 'readd'):  ###read이면
+                try:
+                    readcnt[acc_rank] += 1  # readcnt의 acc_rank번째 요소를 1 증가
+                except IndexError:  # ***list index out of range
+                    for i in range(len(readcnt), acc_rank + 1):
+                        readcnt.insert(i, 0)
+                    readcnt[acc_rank] += 1
 
-lfu = LFUCache()
-lfu1 = LFUCache()
+            else:  ###write면
+                try:
+                    writecnt[acc_rank] += 1 # writecnt의 acc_rank번째 요소를 1 증가
+                except IndexError:
+                    for i in range(len(writecnt), acc_rank + 1):
+                        writecnt.insert(i, 0)
+                    writecnt[acc_rank] += 1
 
-address = [2,3,1,2,3,2,2,2,2,3,2,7,7,3,7,7,1]
-for i in address:
-    rank = lfu.reference(i)
+    return block_rank, readcnt, writecnt
 
-cache = lfu.get()
-lfu1.set(cache)
+def save_json(block_rank, readcnt, writecnt, i):
+    filename = args.output[:-4] + "_checkpoint" + str(i) + ".json"
+    path = filename[:filename.rfind('/')]
 
-rank1 = lfu.reference(4)
-rank2 = lfu.reference(5)
-cache = lfu.get()
-print(cache, rank1, rank2)
+    if not os.path.exists(path):    # FileNotFoundError: [Errno2] No such file or directory: '~'
+        os.makedirs(path)
 
-rank3 = lfu1.reference(3)
-rank4 = lfu1.reference(8)
-cache1 = lfu1.get()
-print(cache1, rank3, rank4)
+    save = {'block_rank': block_rank,
+            'readcnt': readcnt,
+            'writecnt': writecnt}
+
+    with open(filename, 'w', encoding='utf-8') as f:
+        # indent=2 is not needed but makes the file human-readable
+        # if the data is nested
+        json.dump(save, f, indent=2)
+
+def load_json(i):
+    filename = args.output[:-4] + "_checkpoint" + str(i) + ".json"
+
+    with open(filename, 'r') as f:
+        load = json.load(f)
+
+    block_rank = load['block_rank']
+    readcnt = load['readcnt']
+    writecnt = load['writecnt']
+
+    return block_rank, readcnt, writecnt
+
+
+## 1. use list of chunk
+"""
+memdf = pd.read_csv('memdf.csv', sep=',', chunksize=1000000, header=0, index_col=0, error_bad_lines=False)
+memdf = list(memdf)
+print(memdf[-1].head)
+print(memdf[0].head)
+
+for i in range(len(memdf)):
+  memdf[i]['time'] = memdf[i].index
+  if(i>0):
+    block_rank, readcnt, writecnt = load_json(i-1)
+    print(block_rank, readcnt, writecnt)
+  block_rank, readcnt, writecnt = temp_local(memdf[i], block_rank, readcnt, writecnt)
+  save_json(block_rank, readcnt, writecnt, i)
+"""
+
+## 2. load separate .csv file
+def cal_temp_local(startpoint, endpoint):  # , Subsequent=False):
+    ref_block = LFUCache()
+    block_rank = dict()
+    readcnt = list()
+    writecnt = list()
+
+    if (startpoint > 0):
+        block_rank, readcnt, writecnt = load_json(startpoint - 1)
+        block_rank = {int(k): v for k, v in block_rank.items()}
+        ref_block.set(block_rank)
+        # print(block_rank, readcnt, writecnt)
+
+    if (args.chunk_group == 1):
+        memdf = pd.read_csv(args.input + '_' + str('0') + '.csv', sep=',', header=0, index_col=0, on_bad_lines='skip')
+        ref_block, readcnt, writecnt = temp_local(memdf, ref_block, readcnt, writecnt)
+        block_rank = ref_block.get()
+        save_json(block_rank, readcnt, writecnt, 0)
+
+    for i in range(startpoint, endpoint):
+        memdf = pd.read_csv(args.input + '_' + str(i) + '.csv', sep=',', header=0, index_col=0, on_bad_lines='skip')
+        ref_block, readcnt, writecnt = temp_local(memdf, ref_block, readcnt, writecnt)
+        block_rank = ref_block.get()
+        save_json(block_rank, readcnt, writecnt, i)
+
+
+cal_temp_local(0, args.chunk_group)  # , Subsequent=False)
+
+"""##**memdf5 graph**"""
+
+block_rank, readcnt, writecnt = load_json(args.chunk_group-1)
+
+#--
+fig, ax = plt.subplots(2, figsize=(10,10), constrained_layout=True, sharex=True, sharey=True) # sharex=True: share x axis
+
+font_size=25
+parameters = {'axes.labelsize': font_size, 'axes.titlesize': font_size, 'xtick.labelsize': font_size, 'ytick.labelsize': font_size}
+plt.rcParams.update(parameters)
+
+if args.title != '':
+  plt.suptitle(args.title, fontsize=25)
+
+#read
+x1 = range(1,len(readcnt)+1)
+y1 = readcnt
+
+#write
+x2 = range(1,len(writecnt)+1)
+y2 = writecnt
+
+
+# read graph
+ax[0].scatter(x1, y1, color='blue', label='read', s=5)
+ax[0].set_xscale('log')
+ax[0].set_yscale('log')
+# legend
+ax[0].set_xlabel('rank(temporal locality)')
+ax[0].set_ylabel('access count')
+ax[0].legend(loc=(1.0,0.8), ncol=1) #loc = 'best', 'upper right'
+
+# write graph
+ax[1].scatter(x2, y2, color='red', label='write', s=5)
+ax[1].set_xscale('log')
+ax[1].set_yscale('log')
+#ax[1].set_ylim([0.5, 1e7])
+# legend
+ax[1].set_xlabel('rank(temporal locality)')
+ax[1].set_ylabel('access count')
+ax[1].legend(loc=(1.0,0.8), ncol=1) #loc = 'best'
+
+
+#plt.show()
+plt.savefig(args.output[:-4]+'.png', dpi=300)
