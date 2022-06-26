@@ -185,7 +185,7 @@ import numpy as np
 import os
 import json
 
-def temp_local(df, block_rank, readcnt, writecnt):
+def simulation(df, block_rank, readcnt, writecnt):
     for index, row in df.iterrows():  ### one by one
         ### type과 rank 맞춰서 readcnt/writecnt 수정
         acc_rank = block_rank.reference(row['blockaddress'])
@@ -238,7 +238,6 @@ def load_json(i):
 
     return block_rank, readcnt, writecnt
 
-
 ## 1. use list of chunk
 """
 memdf = pd.read_csv('memdf.csv', sep=',', chunksize=1000000, header=0, index_col=0, error_bad_lines=False)
@@ -256,7 +255,7 @@ for i in range(len(memdf)):
 """
 
 ## 2. load separate .csv file
-def cal_temp_local(startpoint, endpoint):  # , Subsequent=False):
+def lfu_simulation(startpoint, endpoint):  # , Subsequent=False):
     ref_block = LFUCache()
     block_rank = dict()
     readcnt = list()
@@ -268,20 +267,13 @@ def cal_temp_local(startpoint, endpoint):  # , Subsequent=False):
         ref_block.set(block_rank)
         # print(block_rank, readcnt, writecnt)
 
-    if (args.chunk_group == 1):
-        memdf = pd.read_csv(args.input + '_' + str('0') + '.csv', sep=',', header=0, index_col=0, on_bad_lines='skip')
-        ref_block, readcnt, writecnt = temp_local(memdf, ref_block, readcnt, writecnt)
-        block_rank = ref_block.get()
-        save_json(block_rank, readcnt, writecnt, 0)
-
     for i in range(startpoint, endpoint):
         memdf = pd.read_csv(args.input + '_' + str(i) + '.csv', sep=',', header=0, index_col=0, on_bad_lines='skip')
-        ref_block, readcnt, writecnt = temp_local(memdf, ref_block, readcnt, writecnt)
+        ref_block, readcnt, writecnt = simulation(memdf, ref_block, readcnt, writecnt)
         block_rank = ref_block.get()
         save_json(block_rank, readcnt, writecnt, i)
 
-
-cal_temp_local(0, args.chunk_group)  # , Subsequent=False)
+lfu_simulation(0, args.chunk_group)  # , Subsequent=False)
 
 """##**memdf5 graph**"""
 
@@ -305,7 +297,6 @@ y1 = readcnt
 x2 = range(1,len(writecnt)+1)
 y2 = writecnt
 
-
 # read graph
 ax[0].scatter(x1, y1, color='blue', label='read', s=5)
 ax[0].set_xscale('log')
@@ -324,7 +315,6 @@ ax[1].set_yscale('log')
 ax[1].set_xlabel('rank(temporal locality)')
 ax[1].set_ylabel('access count')
 ax[1].legend(loc=(1.0,0.8), ncol=1) #loc = 'best'
-
 
 #plt.show()
 plt.savefig(args.output[:-4]+'.png', dpi=300)
