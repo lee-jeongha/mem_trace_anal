@@ -8,28 +8,60 @@ args = parser.parse_args()
 df = pd.read_csv(args.i, header=0, index_col=0)
 print(df)
 
-read = df[['blockaddress','type_rank']][(df['type']=='read')]
-read_l = len(read)
+#---
+"""read = df[['blockaddress','type_rank']][(df['type']=='read')]
+read_l = len(read) #// 5
+read = read.sort_values(by='type_rank', ascending=True)[:read_l]
 
 write = df[['blockaddress','type_rank']][(df['type']=='write')]
-write_l = len(write)
+write_l = len(write) #// 5
+write = write.sort_values(by='type_rank', ascending=True)[:write_l]
 
 rw = df[['blockaddress','type_rank']][(df['type']=='read&write')]
-rw_l = len(rw)
+rw_l = len(rw) #// 5
+rw = rw.sort_values(by='type_rank', ascending=True)[:rw_l]"""
+#---
+read = df[['blockaddress','type_pcnt_rank']][(df['type']=='read')]
+read_l = len(read) #// 10
+read = read.sort_values(by='type_pcnt_rank', ascending=True)[:read_l]
 
-rw_join = read.join(write.set_index('blockaddress'), on='blockaddress', lsuffix='_read', rsuffix='_write')
-#print(rw_join)
+write = df[['blockaddress','type_pcnt_rank']][(df['type']=='write')]
+write_l = len(write) #// 10
+write = write.sort_values(by='type_pcnt_rank', ascending=True)[:write_l]
 
-rw_join['type_rank_read'] = rw_join['type_rank_read'].fillna(value=read_l)
-rw_join['type_rank_write'] = rw_join['type_rank_write'].fillna(value=write_l)
-#print(rw_join)
+rw = df[['blockaddress','type_pcnt_rank']][(df['type']=='read&write')]
+rw_l = len(rw) #// 10
+rw = rw.sort_values(by='type_pcnt_rank', ascending=True)[:rw_l]
+#---
 
-rw_join[:1000]
+rw_merge = pd.merge(read, write, left_on='blockaddress', right_on='blockaddress', how='outer', suffixes = ['_read', '_write'])#, lsuffix='_read', rsuffix='_write')
+print(rw_merge)
 
-print(rw_join.corr())
+#---
+#only_read = rw_merge[rw_merge['type_rank_write'].isnull()]
+#only_write = rw_merge[rw_merge['type_rank_read'].isnull()]
+#---
+only_read = rw_merge[rw_merge['type_pcnt_rank_write'].isnull()]
+only_write = rw_merge[rw_merge['type_pcnt_rank_read'].isnull()]
+#---
+print("only_read percentage",len(only_read)/len(rw_merge), "only_write percentage",len(only_write)/len(rw_merge))
+rw_merge = rw_merge.dropna()
+print("rw_merge\n",rw_merge, "only_read\n",only_read, "only_write\n",only_write)
+
+#---
+#rw_merge['type_rank_read'] = rw_merge['type_rank_read'].fillna(value=read_l)
+#rw_merge['type_rank_write'] = rw_merge['type_rank_write'].fillna(value=write_l)
+#---
+"""rw_merge['type_pcnt_rank_read'] = rw_merge['type_pcnt_rank_read'].fillna(value=1)
+rw_merge['type_pcnt_rank_write'] = rw_merge['type_pcnt_rank_write'].fillna(value=1)"""
+#---
+#print(rw_merge)
+
+print(rw_merge.corr())
 
 import matplotlib.pyplot as plt
-plt.scatter(rw_join['type_rank_read'][:1000], rw_join['type_rank_write'][:1000])
+#plt.scatter(rw_merge['type_rank_read'], rw_merge['type_rank_write'])
+plt.scatter(rw_merge['type_pcnt_rank_read'], rw_merge['type_pcnt_rank_write'])
 plt.show()
 """
 from scipy.optimize import curve_fit
