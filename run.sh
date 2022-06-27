@@ -39,7 +39,8 @@ while (( "$#" )); do
             echo "Usage:  $0 -i <input> [options]" >&2
             echo "        -i | --input  %  (input file name)" >&2
             echo "        -o | --output  %  (output directory name)" >&2
-	          exit 0
+            echo "        -t | --title  %   (title of graphs)" >&2
+	        exit 0
             ;;
         -*|--*) # unsupported flags
             echo "Error: Unsupported flag: $1" >&2
