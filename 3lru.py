@@ -11,20 +11,19 @@ class LRUCache(object):
         self.cache = ref_table
 
     def reference(self, ref_address):
-        ref_block = self.cache
-        if ref_address in ref_block:
-            rank = ref_block.index(ref_address)
-            _ = ref_block.pop(rank)
-            ref_block.insert(0, ref_address)
-
-            self.cache = ref_block
-            return rank
+        if ref_address in self.cache:
+            rank = self.cache.index(ref_address)
+            if rank == 0:
+                return rank
+            else:
+                _ = self.cache.pop(rank)
+                self.cache.insert(0, ref_address)
+                return rank
 
         else:
-            ref_block.insert(0, ref_address)
-
-            self.cache = ref_block
+            self.cache.insert(0, ref_address)
             return -1
+
 # -*- coding: utf-8 -*-
 
 import argparse

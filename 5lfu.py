@@ -110,10 +110,14 @@ class LFUCache(object):
             
             return -1
 
-    def move_next_to(self, ref_address, freq_node): # for each access
+    def move_next_to(self, ref_address, freq_node):  # for each access
         if freq_node.nxt is None or freq_node.nxt.freq != freq_node.freq + 1:
-            target_freq_node = FreqNode(freq_node.freq + 1, list(), None, None)
-            target_empty = True
+            if freq_node.count_blocks() == 1:
+                freq_node.freq += 1
+                return freq_node
+            else:
+                target_freq_node = FreqNode(freq_node.freq + 1, list(), None, None)
+                target_empty = True
         
         else:
             target_freq_node = freq_node.nxt
@@ -162,7 +166,6 @@ class LFUCache(object):
             current = current.nxt
 
         return rank
-
 
 # -*- coding: utf-8 -*-
 
