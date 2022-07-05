@@ -168,7 +168,7 @@ ax[0].set_xscale('log')
 ax[0].set_yscale('log')
 # legend
 ax[0].set_xlabel('rank(temporal locality)')
-ax[0].set_ylabel('access count')
+ax[0].set_ylabel('reference count')
 ax[0].legend(loc=(1.0,0.8), ncol=1) #loc = 'best', 'upper right'
 
 # write graph
@@ -178,7 +178,7 @@ ax[1].set_yscale('log')
 #ax[1].set_ylim([0.5, 1e7])
 # legend
 ax[1].set_xlabel('rank(temporal locality)')
-ax[1].set_ylabel('access count')
+ax[1].set_ylabel('reference count')
 ax[1].legend(loc=(1.0,0.8), ncol=1) #loc = 'best'
 
 #plt.show()
