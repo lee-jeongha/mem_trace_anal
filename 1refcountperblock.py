@@ -20,21 +20,21 @@ import os
 import math
 
 def save_csv(df, filename, index=0):
-  try:
-    if index==0:
-      df.to_csv(filename, index=True, header=True, mode='w') # encoding='utf-8-sig'
-    else: #append mode
-      df.to_csv(filename, index=True, header=False, mode='a') # encoding='utf-8-sig'
-  except OSError:	# OSError: Cannot save file into a non-existent directory: '~'
-    #if not os.path.exists(path):
-    target_dir = filename.rfind('/')
-    path = filename[:target_dir]
-    os.makedirs(path)
-    #---
-    if index==0:
-      df.to_csv(filename, index=True, header=True, mode='w') # encoding='utf-8-sig'
-    else: #append mode
-      df.to_csv(filename, index=True, header=False, mode='a') # encoding='utf-8-sig'
+    try:
+        if index==0:
+            df.to_csv(filename, index=True, header=True, mode='w') # encoding='utf-8-sig'
+        else: #append mode
+            df.to_csv(filename, index=True, header=False, mode='a') # encoding='utf-8-sig'
+    except OSError:	# OSError: Cannot save file into a non-existent directory: '~'
+        #if not os.path.exists(path):
+        target_dir = filename.rfind('/')
+        path = filename[:target_dir]
+        os.makedirs(path)
+        #---
+        if index==0:
+            df.to_csv(filename, index=True, header=True, mode='w') # encoding='utf-8-sig'
+        else: #append mode
+            df.to_csv(filename, index=True, header=False, mode='a') # encoding='utf-8-sig'
 
 """##**memdf1 = access count**
 * x axis : (virtual) memory block address
@@ -42,16 +42,16 @@ def save_csv(df, filename, index=0):
 """
 
 def address_ref(inputdf, concat=False):
-  if (concat) :
-    df = inputdf.groupby(by=['blockaddress', 'type'], as_index=False).sum()
-    #print(df)
-  else :
-    inputdf = inputdf.replace('readi', 'read')
-    inputdf = inputdf.replace('readd', 'read')
+    if (concat) :
+        df = inputdf.groupby(by=['blockaddress', 'type'], as_index=False).sum()
+        #print(df)
+    else :
+        inputdf = inputdf.replace('readi', 'read')
+        inputdf = inputdf.replace('readd', 'read')
 
-    df = inputdf.groupby(['blockaddress', 'type'])['blockaddress'].count().reset_index(name='count') # 'blockaddress'와 'type'을 기준으로 묶어서 세고, 이 이름은 'count'로
+        df = inputdf.groupby(['blockaddress', 'type'])['blockaddress'].count().reset_index(name='count') # 'blockaddress'와 'type'을 기준으로 묶어서 세고, 이 이름은 'count'로
 
-  return df
+    return df
 
 ## 1. use list of chunk
 """
@@ -72,14 +72,14 @@ for i in range(len(memdf)):
 df1 = pd.DataFrame()
 df1_rw = pd.DataFrame()
 for i in range(100): #under 
-  filename = args.input+'_'+str(i)+'.csv'
-  try:
-    memdf = pd.read_csv(filename, sep=',', header=0, index_col=0, on_bad_lines='skip')
-    df = address_ref(memdf, concat=False)
-    df1 = pd.concat([df1, df])
-  except FileNotFoundError:
-    print("No file named: ", filename)
-    break
+    filename = args.input+'_'+str(i)+'.csv'
+    try:
+        memdf = pd.read_csv(filename, sep=',', header=0, index_col=0, on_bad_lines='skip')
+        df = address_ref(memdf, concat=False)
+        df1 = pd.concat([df1, df])
+    except FileNotFoundError:
+        print("No file named: ", filename)
+        break
 
 df1 = address_ref(df1, concat=True)
 
@@ -114,7 +114,7 @@ plt.rcParams.update(parameters)
 #plt.axis([0-1e6, memdf1['blockaddress'].max()+1e6, 0-2, max(y1.max(), y2.max())+10]) # [xmin, xmax, ymin, ymax]
 
 if args.title != '':
-  plt.suptitle(args.title, fontsize=17)
+    plt.suptitle(args.title, fontsize=17)
 
 print(x1.max(), x2.max())
 print(y1.min(), y1.max(), digit_length(y1.max()))
@@ -136,57 +136,57 @@ plt.savefig(args.output[:-4]+'.png', dpi=300)
 
 if (args.distribution):
 
-  plt.clf() # Clear the current figure
+    plt.clf() # Clear the current figure
 
-  fig, ax = plt.subplots(2, 2, figsize=(6,6), constrained_layout=True, sharex=True)#, sharey=True)
-  plt.xscale('log')
+    fig, ax = plt.subplots(2, 2, figsize=(6,6), constrained_layout=True, sharex=True)#, sharey=True)
+    plt.xscale('log')
 
-  if args.title != '':
-    plt.suptitle(args.title, fontsize=17)
+    if args.title != '':
+        plt.suptitle(args.title, fontsize=17)
 
-  bin_list = [1, 2]
-  if(y1.max() > y2.max()):
-    bin_list.extend([ 10**i for i in range(1, digit_length(y1.max()) + 1) ])
-  else:
-    bin_list.extend([ 10**i for i in range(1, digit_length(y2.max()) + 1) ])
+    bin_list = [1, 2]
+    if(y1.max() > y2.max()):
+        bin_list.extend([ 10**i for i in range(1, digit_length(y1.max()) + 1) ])
+    else:
+        bin_list.extend([ 10**i for i in range(1, digit_length(y2.max()) + 1) ])
 
-  """
-  # right = True : bins[i-1] < x <= bins[i] / bins[i-1] >= x > bins[i]
-  dist1 = np.digitize(y1, bin_list, right=True)
-  dist2 = np.digitize(y2, bin_list, right=True)
+    """
+    # right = True : bins[i-1] < x <= bins[i] / bins[i-1] >= x > bins[i]
+    dist1 = np.digitize(y1, bin_list, right=True)
+    dist2 = np.digitize(y2, bin_list, right=True)
 
-  hist1 = np.bincount(dist1)
-  hist2 = np.bincount(dist2)
+    hist1 = np.bincount(dist1)
+    hist2 = np.bincount(dist2)
   
-  ax[0].bar(np.arange(len(bin_list)), hist1, color='blue', edgecolor='black', label='read')
-  ax[0].set_xticks(np.arange(len(bin_list)), bin_list)
-  ax[1].bar(np.arange(len(bin_list)), hist2, color='red', edgecolor='black', label='write')
-  ax[1].set_xticks(np.arange(len(bin_list)), bin_list)
-  """
+    ax[0].bar(np.arange(len(bin_list)), hist1, color='blue', edgecolor='black', label='read')
+    ax[0].set_xticks(np.arange(len(bin_list)), bin_list)
+    ax[1].bar(np.arange(len(bin_list)), hist2, color='red', edgecolor='black', label='write')
+    ax[1].set_xticks(np.arange(len(bin_list)), bin_list)
+    """
 
-  # read graph
-  counts, edges, bars = ax[0][0].hist(y1, bins=bin_list, density=False, rwidth=3, color='blue', edgecolor='black', label='read')
-  ax[0][0].legend(loc='upper right', ncol=1) #loc = 'best'
-  ax[0][0].bar_label(bars, label_type='edge')
+    # read graph
+    counts, edges, bars = ax[0][0].hist(y1, bins=bin_list, density=False, rwidth=3, color='blue', edgecolor='black', label='read')
+    ax[0][0].legend(loc='upper right', ncol=1) #loc = 'best'
+    ax[0][0].bar_label(bars, label_type='edge')
 
-  # write graph
-  counts, edges, bars = ax[1][0].hist(y2, bins=bin_list, density=False, rwidth=3, color='red', edgecolor='black', label='write')
-  ax[1][0].legend(loc='upper right', ncol=1) #loc = 'best'
-  ax[1][0].bar_label(bars, label_type='edge')
+    # write graph
+    counts, edges, bars = ax[1][0].hist(y2, bins=bin_list, density=False, rwidth=3, color='red', edgecolor='black', label='write')
+    ax[1][0].legend(loc='upper right', ncol=1) #loc = 'best'
+    ax[1][0].bar_label(bars, label_type='edge')
 
-  """normalized graph"""
-  # read graph
-  counts, edges, bars = ax[0][1].hist(y1, bins=bin_list, density=True, rwidth=3, color='blue', edgecolor='black', label='read')
-  ax[0][1].legend(loc='upper right', ncol=1)  # loc = 'best'
-  ax[0][1].bar_label(bars, label_type='edge')
+    """normalized graph"""
+    # read graph
+    counts, edges, bars = ax[0][1].hist(y1, bins=bin_list, density=True, rwidth=3, color='blue', edgecolor='black', label='read')
+    ax[0][1].legend(loc='upper right', ncol=1)  # loc = 'best'
+    ax[0][1].bar_label(bars, label_type='edge')
 
-  # write graph
-  counts, edges, bars = ax[1][1].hist(y2, bins=bin_list, density=True, rwidth=3, color='red', edgecolor='black', label='write')
-  ax[1][1].legend(loc='upper right', ncol=1)  # loc = 'best'
-  ax[1][1].bar_label(bars, label_type='edge')
+    # write graph
+    counts, edges, bars = ax[1][1].hist(y2, bins=bin_list, density=True, rwidth=3, color='red', edgecolor='black', label='write')
+    ax[1][1].legend(loc='upper right', ncol=1)  # loc = 'best'
+    ax[1][1].bar_label(bars, label_type='edge')
 
-  fig.supxlabel('reference count', fontsize=17)
-  fig.supylabel('# of memory block', fontsize=17)
+    fig.supxlabel('reference count', fontsize=17)
+    fig.supylabel('# of memory block', fontsize=17)
 
-  #plt.show()
-  plt.savefig(args.output[:-4]+'_hist-norm.png', dpi=300)
+    #plt.show()
+    plt.savefig(args.output[:-4]+'_hist-norm.png', dpi=300)
