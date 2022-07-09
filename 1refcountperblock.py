@@ -138,17 +138,28 @@ if (args.distribution):
 
     plt.clf() # Clear the current figure
 
-    fig, ax = plt.subplots(2, 2, figsize=(6,6), constrained_layout=True, sharex=True)#, sharey=True)
+    fig, ax = plt.subplots(2, 2, figsize=(10,6), constrained_layout=True, sharex=True, sharey='col')
     plt.xscale('log')
+
+    def hist_label(subplot, counts, bars, round_range=0):
+        if round_range:
+            counts = np.round(counts, round_range)
+        else:
+            counts = [int(i) for i in counts]
+        for idx,rect in enumerate(bars):
+            height = rect.get_height()
+            subplot.text(rect.get_x() + rect.get_width()/3.25, 0.4*height,
+                    counts[idx],
+                    ha='center', va='bottom', rotation=90)
 
     if args.title != '':
         plt.suptitle(args.title, fontsize=17)
 
-    bin_list = [1, 2]
+    bin_list = [1]
     if(y1.max() > y2.max()):
-        bin_list.extend([ 10**i for i in range(1, digit_length(y1.max()) + 1) ])
+        bin_list.extend([ 10**i + 1 for i in range(digit_length(y1.max()) + 1) ])
     else:
-        bin_list.extend([ 10**i for i in range(1, digit_length(y2.max()) + 1) ])
+        bin_list.extend([ 10**i + 1 for i in range(digit_length(y2.max()) + 1) ])
 
     """
     # right = True : bins[i-1] < x <= bins[i] / bins[i-1] >= x > bins[i]
@@ -167,26 +178,26 @@ if (args.distribution):
     # read graph
     counts, edges, bars = ax[0][0].hist(y1, bins=bin_list, density=False, rwidth=3, color='blue', edgecolor='black', label='read')
     ax[0][0].legend(loc='upper right', ncol=1) #loc = 'best'
-    ax[0][0].bar_label(bars, label_type='edge')
+    hist_label(ax[0][0], counts, bars)
 
     # write graph
     counts, edges, bars = ax[1][0].hist(y2, bins=bin_list, density=False, rwidth=3, color='red', edgecolor='black', label='write')
     ax[1][0].legend(loc='upper right', ncol=1) #loc = 'best'
-    ax[1][0].bar_label(bars, label_type='edge')
+    hist_label(ax[1][0], counts, bars)
 
     """normalized graph"""
     # read graph
     counts, edges, bars = ax[0][1].hist(y1, bins=bin_list, density=True, rwidth=3, color='blue', edgecolor='black', label='read')
     ax[0][1].legend(loc='upper right', ncol=1)  # loc = 'best'
-    ax[0][1].bar_label(bars, label_type='edge')
+    hist_label(ax[0][1], counts, bars, 5)
 
     # write graph
     counts, edges, bars = ax[1][1].hist(y2, bins=bin_list, density=True, rwidth=3, color='red', edgecolor='black', label='write')
     ax[1][1].legend(loc='upper right', ncol=1)  # loc = 'best'
-    ax[1][1].bar_label(bars, label_type='edge')
+    hist_label(ax[1][1], counts, bars, 5)
 
     fig.supxlabel('reference count', fontsize=17)
     fig.supylabel('# of memory block', fontsize=17)
 
     #plt.show()
-    plt.savefig(args.output[:-4]+'_hist-norm.png', dpi=300)
+    plt.savefig(args.output[:-4]+'_hist.png', dpi=300)
