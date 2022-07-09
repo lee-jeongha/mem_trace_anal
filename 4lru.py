@@ -45,7 +45,7 @@ import numpy as np
 import os
 import json
 
-"""##**memdf3 = tendency toward temporal locality**
+"""##**memdf4 = tendency toward temporal locality**
 * x axis : rank(temporal locality)
 * y axis : memory block access count
 """
@@ -139,7 +139,7 @@ def lru_simulation(startpoint, endpoint):
 
 lru_simulation(0, args.chunk_group)
 
-"""##**memdf3 graph**"""
+"""##**memdf4 graph**"""
 
 block_rank, readcnt, writecnt = load_json(args.chunk_group-1)
 
