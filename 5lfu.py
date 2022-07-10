@@ -1,3 +1,23 @@
+# -*- coding: utf-8 -*-
+
+import argparse
+parser = argparse.ArgumentParser(description="plot lru graph from log file")
+parser.add_argument("--input", "-i", metavar='I', type=str, nargs='?', default='input.txt',
+                    help='input file')
+parser.add_argument("--output", "-o", metavar='O', type=str, nargs='?', default='output.txt',
+                    help='output file')
+parser.add_argument("--chunk_group", "-c", metavar='S', type=int, nargs='?', default=10,
+                    help='# of chunk group')
+parser.add_argument("--title", "-t", metavar='T', type=str, nargs='?', default='',
+                    help='title of a graph')
+args = parser.parse_args()
+
+
+import matplotlib.pyplot as plt
+import pandas as pd
+from load_and_save import save_json, load_json
+
+
 class FreqNode(object):
     def __init__(self, freq, ref_block, pre, nxt):
         self.freq = freq
@@ -21,12 +41,8 @@ class FreqNode(object):
         return (pre, nxt)
 
     def remove_block(self, ref_address): # remove ref_address from ref_block within freq_node
-        ref_block_list = self.ref_block
-        
-        ref_address_idx = ref_block_list.index(ref_address)
-        _ = ref_block_list.pop(ref_address_idx)
-
-        self.ref_block = ref_block_list
+        ref_address_idx = self.ref_block.index(ref_address)
+        _ = self.ref_block.pop(ref_address_idx)
 
         return ref_address_idx
 
@@ -57,7 +73,6 @@ class FreqNode(object):
 
 
 class LFUCache(object):
-
     def __init__(self):
         self.cache = {}  # {addr: freq_node}
         self.freq_link_head = None
@@ -96,29 +111,26 @@ class LFUCache(object):
 
     def reference(self, ref_address):
         if ref_address in self.cache:
-            freq = self.cache[ref_address]
-            new_freq = self.move_next_to(ref_address, freq)
-            rank = self.get_freqs_rank(new_freq)
+            freq_node = self.cache[ref_address]
+            rank = self.get_freqs_rank(freq_node)
+            #rank += freq_node.ref_block.index(ref_address)
 
-            self.cache[ref_address] = new_freq
+            new_freq_node = self.move_next_to(ref_address, freq_node)
+            self.cache[ref_address] = new_freq_node
 
             return rank
         
         else:
-            freq = self.create_freq_node(ref_address)
-            self.cache[ref_address] = freq
+            new_freq_node = self.create_freq_node(ref_address)
+            self.cache[ref_address] = new_freq_node
             
             return -1
 
     def move_next_to(self, ref_address, freq_node):  # for each access
         if freq_node.nxt is None or freq_node.nxt.freq != freq_node.freq + 1:
-            if freq_node.count_blocks() == 1:
-                freq_node.freq += 1
-                return freq_node
-            else:
-                target_freq_node = FreqNode(freq_node.freq + 1, list(), None, None)
-                target_empty = True
-        
+            target_freq_node = FreqNode(freq_node.freq + 1, list(), None, None)
+            target_empty = True
+
         else:
             target_freq_node = freq_node.nxt
             target_empty = False
@@ -167,26 +179,6 @@ class LFUCache(object):
 
         return rank
 
-# -*- coding: utf-8 -*-
-
-import argparse
-parser = argparse.ArgumentParser(description="plot lru graph from log file")
-parser.add_argument("--input", "-i", metavar='I', type=str, nargs='?', default='input.txt',
-                    help='input file')
-parser.add_argument("--output", "-o", metavar='O', type=str, nargs='?', default='output.txt',
-                    help='output file')
-parser.add_argument("--chunk_group", "-c", metavar='S', type=int, nargs='?', default=10,
-                    help='# of chunk group')
-parser.add_argument("--title", "-t", metavar='T', type=str, nargs='?', default='',
-                    help='title of a graph')
-args = parser.parse_args()
-
-
-import matplotlib.pyplot as plt
-import pandas as pd
-import numpy as np
-import os
-import json
 
 def simulation(df, block_rank, readcnt, writecnt):
     for index, row in df.iterrows():  ### one by one
@@ -213,34 +205,6 @@ def simulation(df, block_rank, readcnt, writecnt):
 
     return block_rank, readcnt, writecnt
 
-def save_json(block_rank, readcnt, writecnt, i):
-    filename = args.output[:-4] + "_checkpoint" + str(i) + ".json"
-    path = filename[:filename.rfind('/')]
-
-    if not os.path.exists(path):    # FileNotFoundError: [Errno2] No such file or directory: '~'
-        os.makedirs(path)
-
-    save = {'block_rank': block_rank,
-            'readcnt': readcnt,
-            'writecnt': writecnt}
-
-    with open(filename, 'w', encoding='utf-8') as f:
-        # indent=2 is not needed but makes the file human-readable
-        # if the data is nested
-        json.dump(save, f, indent=2)
-
-def load_json(i):
-    filename = args.output[:-4] + "_checkpoint" + str(i) + ".json"
-
-    with open(filename, 'r') as f:
-        load = json.load(f)
-
-    block_rank = load['block_rank']
-    readcnt = load['readcnt']
-    writecnt = load['writecnt']
-
-    return block_rank, readcnt, writecnt
-
 ## 1. use list of chunk
 """
 memdf = pd.read_csv('memdf.csv', sep=',', chunksize=1000000, header=0, index_col=0, error_bad_lines=False)
@@ -249,12 +213,17 @@ print(memdf[-1].head)
 print(memdf[0].head)
 
 for i in range(len(memdf)):
-  memdf[i]['time'] = memdf[i].index
-  if(i>0):
-    block_rank, readcnt, writecnt = load_json(i-1)
-    print(block_rank, readcnt, writecnt)
-  block_rank, readcnt, writecnt = temp_local(memdf[i], block_rank, readcnt, writecnt)
-  save_json(block_rank, readcnt, writecnt, i)
+    if(i > 0):
+        filename = args.output + "_checkpoint" + str(i-1) + ".json"
+        saving_list = ['block_rank', 'readcnt', 'writecnt']
+        block_rank, readcnt, writecnt = load_json(saving_list, filename)
+        print(block_rank, readcnt, writecnt)
+
+    block_rank, readcnt, writecnt = simulation(memdf[i], block_rank, readcnt, writecnt)
+    
+    savings = {'block_rank': block_rank, 'readcnt': readcnt, 'writecnt': writecnt}
+    filename = args.output + "_checkpoint" + str(i) + ".json"
+    save_json(savings, filename)
 """
 
 ## 2. load separate .csv file
@@ -265,7 +234,10 @@ def lfu_simulation(startpoint, endpoint):  # , Subsequent=False):
     writecnt = list()
 
     if (startpoint > 0):
-        block_rank, readcnt, writecnt = load_json(startpoint - 1)
+        filename = args.output + "_checkpoint" + str(startpoint - 1) + ".json"
+        saving_list = ['block_rank', 'readcnt', 'writecnt']
+
+        block_rank, readcnt, writecnt = load_json(saving_list, filename)
         block_rank = {int(k): v for k, v in block_rank.items()}
         ref_block.set(block_rank)
         # print(block_rank, readcnt, writecnt)
@@ -274,13 +246,20 @@ def lfu_simulation(startpoint, endpoint):  # , Subsequent=False):
         memdf = pd.read_csv(args.input + '_' + str(i) + '.csv', sep=',', header=0, index_col=0, on_bad_lines='skip')
         ref_block, readcnt, writecnt = simulation(memdf, ref_block, readcnt, writecnt)
         block_rank = ref_block.get()
-        save_json(block_rank, readcnt, writecnt, i)
+
+        savings = {'block_rank': block_rank,
+                'readcnt': readcnt,
+                'writecnt': writecnt}
+        filename = args.output + "_checkpoint" + str(i) + ".json"
+        save_json(savings, filename)
 
 lfu_simulation(0, args.chunk_group)  # , Subsequent=False)
 
 """##**memdf5 graph**"""
+filename = args.output + "_checkpoint" + str(args.chunk_group-1) + ".json"
+saving_list = ['block_rank', 'readcnt', 'writecnt']
 
-block_rank, readcnt, writecnt = load_json(args.chunk_group-1)
+block_rank, readcnt, writecnt = load_json(saving_list, filename)
 
 #--
 fig, ax = plt.subplots(2, figsize=(10,10), constrained_layout=True, sharex=True, sharey=True) # sharex=True: share x axis
@@ -320,4 +299,4 @@ ax[1].set_ylabel('reference count')
 ax[1].legend(loc=(1.0,0.8), ncol=1) #loc = 'best'
 
 #plt.show()
-plt.savefig(args.output[:-4]+'.png', dpi=300)
+plt.savefig(args.output+'.png', dpi=300)

@@ -10,7 +10,7 @@ args = parser.parse_args()
 
 
 import pandas as pd
-import os
+from load_and_save import save_csv
 
 """##**preprocess**"""
 
@@ -46,27 +46,10 @@ def chunk_preprocess(df):
 
     return df
 
-def save_csv(df, filename, index=0):
-    try:
-        if index==0:
-            df.to_csv(filename, index=True, header=True, mode='w') # encoding='utf-8-sig'
-        else: #append mode
-            df.to_csv(filename, index=True, header=False, mode='a') # encoding='utf-8-sig'
-    except OSError:	# OSError: Cannot save file into a non-existent directory: '~'
-        #if not os.path.exists(path):
-        target_dir = filename.rfind('/')
-        path = filename[:target_dir]
-        os.makedirs(path)
-        #---
-        if index==0:
-            df.to_csv(filename, index=True, header=True, mode='w') # encoding='utf-8-sig'
-        else: #append mode
-            df.to_csv(filename, index=True, header=False, mode='a') # encoding='utf-8-sig'
-
 chunk = read_logfile_chunk(filename=args.input)
 for i in range(len(chunk)):
     chunk[i] = chunk_preprocess(chunk[i])
-    save_csv(chunk[i], args.output, i)
-    save_csv(chunk[i], args.output[:-4]+'_'+str(i)+'.csv', 0)
+    save_csv(chunk[i], args.output+'.csv', i)
+    save_csv(chunk[i], args.output+'_'+str(i)+'.csv', 0)
     print(i)
 print('done!!')

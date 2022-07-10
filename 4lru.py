@@ -1,5 +1,24 @@
-class LRUCache(object):
+# -*- coding: utf-8 -*-
 
+import argparse
+parser = argparse.ArgumentParser(description="plot lru graph from log file")
+parser.add_argument("--input", "-i", metavar='I', type=str, nargs='?', default='input.txt',
+                    help='input file')
+parser.add_argument("--output", "-o", metavar='O', type=str, nargs='?', default='output.txt',
+                    help='output file')
+parser.add_argument("--chunk_group", "-c", metavar='S', type=int, nargs='?', default=10,
+                    help='# of chunk group')
+parser.add_argument("--title", "-t", metavar='T', type=str, nargs='?', default='',
+                    help='title of a graph')
+args = parser.parse_args()
+
+
+import matplotlib.pyplot as plt
+import pandas as pd
+from load_and_save import save_json, load_json
+
+
+class LRUCache(object):
     def __init__(self):
         self.cache = []
 
@@ -24,26 +43,6 @@ class LRUCache(object):
             self.cache.insert(0, ref_address)
             return -1
 
-# -*- coding: utf-8 -*-
-
-import argparse
-parser = argparse.ArgumentParser(description="plot lru graph from log file")
-parser.add_argument("--input", "-i", metavar='I', type=str, nargs='?', default='input.txt',
-                    help='input file')
-parser.add_argument("--output", "-o", metavar='O', type=str, nargs='?', default='output.txt',
-                    help='output file')
-parser.add_argument("--chunk_group", "-c", metavar='S', type=int, nargs='?', default=10,
-                    help='# of chunk group')
-parser.add_argument("--title", "-t", metavar='T', type=str, nargs='?', default='',
-                    help='title of a graph')
-args = parser.parse_args()
-
-
-import matplotlib.pyplot as plt
-import pandas as pd
-import numpy as np
-import os
-import json
 
 """##**memdf4 = tendency toward temporal locality**
 * x axis : rank(temporal locality)
@@ -75,33 +74,6 @@ def simulation(df, block_rank, readcnt, writecnt):
 
     return block_rank, readcnt, writecnt
 
-def save_json(block_rank, readcnt, writecnt, i):
-    filename = args.output[:-4] + "_checkpoint" + str(i) + ".json"
-    path = filename[:filename.rfind('/')]
-
-    if not os.path.exists(path):  # FileNotFoundError: [Errno2] No such file or directory: '~'
-        os.makedirs(path)
-
-    save = {'block_rank': block_rank,
-            'readcnt': readcnt,
-            'writecnt': writecnt}
-
-    with open(filename, 'w', encoding='utf-8') as f:
-        # indent=2 is not needed but makes the file human-readable
-        # if the data is nested
-        json.dump(save, f, indent=2)
-
-def load_json(i):
-    with open(args.output[:-4]+"_checkpoint"+str(i)+".json", 'r') as f:
-        load = json.load(f)
-  
-    block_rank = load['block_rank']
-    readcnt = load['readcnt']
-    writecnt = load['writecnt']
-    #print(load)
-
-    return block_rank, readcnt, writecnt#, dupl_block
-
 ## 1. use list of chunk
 """
 memdf = pd.read_csv('memdf.csv', sep=',', chunksize=1000000, header=0, index_col=0, error_bad_lines=False)
@@ -111,11 +83,17 @@ print(memdf[0].head)
 
 for i in range(len(memdf)):
     memdf[i]['time'] = memdf[i].index
-    if(i>0):
-        block_rank, readcnt, writecnt = load_json(i-1)
+    if(i > 0):
+        filename = args.output + "_checkpoint" + str(i-1) + ".json"
+        saving_list = ['block_rank', 'readcnt', 'writecnt']
+        block_rank, readcnt, writecnt = load_json(saving_list, filename)
         print(block_rank, readcnt, writecnt)
+
     block_rank, readcnt, writecnt = temp_local(memdf[i], block_rank, readcnt, writecnt)
-    save_json(block_rank, readcnt, writecnt, i)
+
+    savings = {'block_rank': block_rank, 'readcnt': readcnt, 'writecnt': writecnt}
+    filename = args.output + "_checkpoint" + str(i) + ".json"
+    save_json(savings, filename)
 """
 
 ## 2. load separate .csv file
@@ -126,7 +104,10 @@ def lru_simulation(startpoint, endpoint):
     writecnt = list()
 
     if (startpoint > 0):
-        block_rank, readcnt, writecnt = load_json(startpoint - 1)
+        filename = args.output + "_checkpoint" + str(startpoint - 1) + ".json"
+        saving_list = ['block_rank', 'readcnt', 'writecnt']
+
+        block_rank, readcnt, writecnt = load_json(saving_list, filename)
         ref_block.set(block_rank)
         # print(block_rank, readcnt, writecnt)
 
@@ -134,14 +115,20 @@ def lru_simulation(startpoint, endpoint):
         memdf = pd.read_csv(args.input + '_' + str(i) + '.csv', sep=',', header=0, index_col=0, on_bad_lines='skip')
         ref_block, readcnt, writecnt = simulation(memdf, ref_block, readcnt, writecnt)
         block_rank = ref_block.get()
-        save_json(block_rank, readcnt, writecnt, i)
-        print(i)
+
+        savings = {'block_rank': block_rank,
+                'readcnt': readcnt,
+                'writecnt': writecnt}
+        filename = args.output + "_checkpoint" + str(i) + ".json"
+        save_json(savings, filename)
 
 lru_simulation(0, args.chunk_group)
 
 """##**memdf4 graph**"""
+filename = args.output + "_checkpoint" + str(args.chunk_group-1) + ".json"
+saving_list = ['block_rank', 'readcnt', 'writecnt']
 
-block_rank, readcnt, writecnt = load_json(args.chunk_group-1)
+block_rank, readcnt, writecnt = load_json(saving_list, filename)
 
 #--
 fig, ax = plt.subplots(2, figsize=(10,10), constrained_layout=True, sharex=True, sharey=True) # sharex=True: share x axis
@@ -181,4 +168,4 @@ ax[1].set_ylabel('reference count')
 ax[1].legend(loc=(1.0,0.8), ncol=1) #loc = 'best'
 
 #plt.show()
-plt.savefig(args.output[:-4]+'.png', dpi=300)
+plt.savefig(args.output+'.png', dpi=300)

@@ -16,25 +16,8 @@ args = parser.parse_args()
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
-import os
+from load_and_save import save_csv
 import math
-
-def save_csv(df, filename, index=0):
-    try:
-        if index==0:
-            df.to_csv(filename, index=True, header=True, mode='w') # encoding='utf-8-sig'
-        else: #append mode
-            df.to_csv(filename, index=True, header=False, mode='a') # encoding='utf-8-sig'
-    except OSError:	# OSError: Cannot save file into a non-existent directory: '~'
-        #if not os.path.exists(path):
-        target_dir = filename.rfind('/')
-        path = filename[:target_dir]
-        os.makedirs(path)
-        #---
-        if index==0:
-            df.to_csv(filename, index=True, header=True, mode='w') # encoding='utf-8-sig'
-        else: #append mode
-            df.to_csv(filename, index=True, header=False, mode='a') # encoding='utf-8-sig'
 
 """##**memdf1 = access count**
 * x axis : (virtual) memory block address
@@ -63,9 +46,9 @@ print(memdf[0].head)
 df1 = pd.DataFrame()
 df1_rw = pd.DataFrame()
 for i in range(len(memdf)):
-  memdf = pd.read_csv(memdf[i], sep=',', header=0, index_col=0, error_bad_lines=False)
-  df = address_ref(memdf, concat=False)
-  df1 = pd.concat([df1, df])
+    memdf = pd.read_csv(memdf[i], sep=',', header=0, index_col=0, error_bad_lines=False)
+    df = address_ref(memdf, concat=False)
+    df1 = pd.concat([df1, df])
 """
 
 ## 2. load separate .csv file
@@ -88,13 +71,13 @@ df1_rw = df1.groupby(by=['blockaddress'], as_index=False).sum()
 df1_rw['type'] = 'read&write'
 
 df1 = pd.concat([df1, df1_rw], sort=True)
-save_csv(df1, args.output, 0)
+save_csv(df1, args.output+'.csv', 0)
 
 """**memdf1 graph**
 > Specify the axis range (manual margin adjustment required)
 """
 
-memdf1 = pd.read_csv(args.output, sep=',', header=0, index_col=0, on_bad_lines='skip')
+memdf1 = pd.read_csv(args.output+'.csv', sep=',', header=0, index_col=0, on_bad_lines='skip')
 
 def digit_length(n):
     return int(math.log10(n)) + 1 if n else 0
@@ -132,7 +115,7 @@ fig.supxlabel('(virtual) memory block address', fontsize=17)
 fig.supylabel('memory block reference count', fontsize=17)
 
 #plt.show()
-plt.savefig(args.output[:-4]+'.png', dpi=300)
+plt.savefig(args.output+'.png', dpi=300)
 
 if (args.distribution):
 
@@ -200,4 +183,4 @@ if (args.distribution):
     fig.supylabel('# of memory block', fontsize=17)
 
     #plt.show()
-    plt.savefig(args.output[:-4]+'_hist.png', dpi=300)
+    plt.savefig(args.output+'_hist.png', dpi=300)

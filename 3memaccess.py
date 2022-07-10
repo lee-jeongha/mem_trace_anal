@@ -9,10 +9,9 @@ parser.add_argument("--output", "-o", metavar='O', type=str, nargs='?', default=
 args = parser.parse_args()
 
 
-import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
-import os
+from load_and_save import save_csv
 
 """##**memaccess**"""
 
@@ -23,7 +22,6 @@ def read_logfile_chunk(filename):
     for i in range(len(chunk)):
         chunk[i] = chunk[i].drop(['address','size'], axis=1)  
     return chunk
-
 
 def read_write(df):
     df['acc_blk'] = df['blockaddress'].rank(method='dense')
@@ -37,29 +35,11 @@ def read_write(df):
 
     return df
 
-
-def save_csv(df, filename, index=0):
-    try:
-        if index==0:
-            df.to_csv(filename, index=True, header=True, mode='w') # encoding='utf-8-sig'
-        else: #append mode
-            df.to_csv(filename, index=True, header=False, mode='a') # encoding='utf-8-sig'
-    except OSError:	# OSError: Cannot save file into a non-existent directory: '~'
-        #if not os.path.exists(path):
-        target_dir = filename.rfind('/')
-        path = filename[:target_dir]
-        os.mkdir(path)
-        #---
-        if index==0:
-            df.to_csv(filename, index=True, header=True, mode='w') # encoding='utf-8-sig'
-        else: #append mode
-            df.to_csv(filename, index=True, header=False, mode='a') # encoding='utf-8-sig'
-
 #-----
-chunk = read_logfile_chunk(filename=args.input)
+chunk = read_logfile_chunk(filename=args.input+'.csv')
 for i in range(len(chunk)):
     chunk[i] = read_write(chunk[i])
     save_csv(chunk[i], args.output, i)
-    save_csv(chunk[i], args.output[:-4]+'_'+str(i)+'.csv', 0)
+    save_csv(chunk[i], args.output+'_'+str(i)+'.csv', 0)
     print(i)
 print('done!!')

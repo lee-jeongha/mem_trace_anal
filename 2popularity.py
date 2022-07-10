@@ -16,27 +16,10 @@ args = parser.parse_args()
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
-import os
-
-def save_csv(df, filename, index=0):
-    try:
-        if index==0:
-            df.to_csv(filename, index=True, header=True, mode='w') # encoding='utf-8-sig'
-        else: #append mode
-            df.to_csv(filename, index=True, header=False, mode='a') # encoding='utf-8-sig'
-    except OSError:	# OSError: Cannot save file into a non-existent directory: '~'
-        #if not os.path.exists(path):
-        target_dir = filename.rfind('/')
-        path = filename[:target_dir]
-        os.makedirs(path)
-        #---
-        if index==0:
-            df.to_csv(filename, index=True, header=True, mode='w') # encoding='utf-8-sig'
-        else: #append mode
-            df.to_csv(filename, index=True, header=False, mode='a') # encoding='utf-8-sig'
+from load_and_save import save_csv
 
 """##**memdf2 = tendency of memory block access**"""
-memdf2 = pd.read_csv(args.input, sep=',', header=0, index_col=0, on_bad_lines='skip')
+memdf2 = pd.read_csv(args.input+'.csv', sep=',', header=0, index_col=0, on_bad_lines='skip')
 
 """memdf2.1
 * x axis : ranking by references count
@@ -76,7 +59,7 @@ memdf2.loc[(memdf2['type']=='write'), ['type_pcnt_rank']] = write_rank
 rw_rank = memdf2['type_pcnt'][(memdf2['type']=='read&write')].rank(ascending=False, pct=True)
 memdf2.loc[(memdf2['type']=='read&write'), ['type_pcnt_rank']] = rw_rank
 
-save_csv(memdf2, args.output, 0)
+save_csv(memdf2, args.output+'.csv', 0)
 
 """zipf"""
 
@@ -100,7 +83,7 @@ if args.zipf:
 
 """memdf2.1 graph"""
 
-#memdf2 = pd.read_csv(args.output, sep=',', header=0, index_col=0, on_bad_lines='skip')
+#memdf2 = pd.read_csv(args.output+'.csv', sep=',', header=0, index_col=0, on_bad_lines='skip')
 
 #read
 x1 = memdf2['type_rank'][(memdf2['type']=='read')]
@@ -152,7 +135,7 @@ if args.zipf:
     plt.legend(loc='lower left', ncol=1)
 
     # plt.show()
-    plt.savefig(args.output[:-4]+'.png', dpi=300)
+    plt.savefig(args.output+'.png', dpi=300)
 
 else:
     fig, ax = plt.subplots(2, figsize=(7,8), constrained_layout=True, sharex=True, sharey=True) # sharex=True: share x axis
@@ -182,7 +165,7 @@ else:
     fig.supylabel('memory block reference count', fontsize=17)
 
     #plt.show()
-    plt.savefig(args.output[:-4]+'.png', dpi=300)
+    plt.savefig(args.output+'.png', dpi=300)
 
 
 """memdf2.2 graph"""
@@ -218,5 +201,5 @@ plt.ylabel('% of reference count')
 plt.legend(loc='lower right', ncol=1)
 
 #plt.show()
-plt.savefig(args.output[:-4]+'_pareto.png', dpi=300)
+plt.savefig(args.output+'_pareto.png', dpi=300)
 
