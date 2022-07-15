@@ -1,14 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import argparse
-parser = argparse.ArgumentParser(description="for preprocess log file")
-parser.add_argument("--input", "-i", metavar='I', type=str, nargs='?', default='input.txt',
-                    help='input file')
-parser.add_argument("--output", "-o", metavar='O', type=str, nargs='?', default='output.txt',
-                    help='output file')
-args = parser.parse_args()
-
-
 import pandas as pd
 from load_and_save import save_csv
 
@@ -46,10 +38,19 @@ def chunk_preprocess(df):
 
     return df
 
-chunk = read_logfile_chunk(filename=args.input)
-for i in range(len(chunk)):
-    chunk[i] = chunk_preprocess(chunk[i])
-    save_csv(chunk[i], args.output+'.csv', i)
-    save_csv(chunk[i], args.output+'_'+str(i)+'.csv', 0)
-    print(i)
-print('done!!')
+#-----
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="for preprocess log file")
+    parser.add_argument("--input", "-i", metavar='I', type=str, nargs='?', default='input.txt',
+                        help='input file')
+    parser.add_argument("--output", "-o", metavar='O', type=str, nargs='?', default='output.txt',
+                        help='output file')
+    args = parser.parse_args()
+
+    chunk = read_logfile_chunk(filename=args.input)
+    for i in range(len(chunk)):
+        chunk[i] = chunk_preprocess(chunk[i])
+        save_csv(chunk[i], args.output+'.csv', i)
+        save_csv(chunk[i], args.output+'_'+str(i)+'.csv', 0)
+        print(i)
+    print('done!!')

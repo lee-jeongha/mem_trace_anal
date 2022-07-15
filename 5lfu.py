@@ -1,21 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import argparse
-parser = argparse.ArgumentParser(description="plot lru graph from log file")
-parser.add_argument("--input", "-i", metavar='I', type=str, nargs='?', default='input.txt',
-                    help='input file')
-parser.add_argument("--output", "-o", metavar='O', type=str, nargs='?', default='output.txt',
-                    help='output file')
-parser.add_argument("--chunk_group", "-c", metavar='S', type=int, nargs='?', default=10,
-                    help='# of chunk group')
-parser.add_argument("--title", "-t", metavar='T', type=str, nargs='?', default='',
-                    help='title of a graph')
-args = parser.parse_args()
-
-
 import matplotlib.pyplot as plt
 import pandas as pd
 from load_and_save import save_json, load_json
+from plot_graph import plot_frame
 
 
 class FreqNode(object):
@@ -180,24 +169,29 @@ class LFUCache(object):
         return rank
 
 
+"""##**memdf5 = tendency toward temporal frequency**
+* x axis : rank(temporal frequency)
+* y axis : access count per block
+"""
+
 def simulation(df, block_rank, readcnt, writecnt):
     for index, row in df.iterrows():  ### one by one
-        ### type과 rank 맞춰서 readcnt/writecnt 수정
+        ### Increase readcnt/writecnt by matching 'type' and block_rank
         acc_rank = block_rank.reference(row['blockaddress'])
         if acc_rank == -1:
             continue
         else:
-            if (row['type'] == 'readi' or row['type'] == 'readd'):  ###read이면
+            if (row['type'] == 'readi' or row['type'] == 'readd'):  ### if the 'type' is 'read'
                 try:
-                    readcnt[acc_rank] += 1  # readcnt의 acc_rank번째 요소를 1 증가
+                    readcnt[acc_rank] += 1  # Increase [acc_rank]th element of readcnt by 1
                 except IndexError:  # ***list index out of range
                     for i in range(len(readcnt), acc_rank + 1):
                         readcnt.insert(i, 0)
                     readcnt[acc_rank] += 1
 
-            else:  ###write면
+            else:   ### if the 'type' is 'write'
                 try:
-                    writecnt[acc_rank] += 1 # writecnt의 acc_rank번째 요소를 1 증가
+                    writecnt[acc_rank] += 1 # Increase [acc_rank]th element of writecnt by 1
                 except IndexError:
                     for i in range(len(writecnt), acc_rank + 1):
                         writecnt.insert(i, 0)
@@ -205,36 +199,15 @@ def simulation(df, block_rank, readcnt, writecnt):
 
     return block_rank, readcnt, writecnt
 
-## 1. use list of chunk
-"""
-memdf = pd.read_csv('memdf.csv', sep=',', chunksize=1000000, header=0, index_col=0, error_bad_lines=False)
-memdf = list(memdf)
-print(memdf[-1].head)
-print(memdf[0].head)
-
-for i in range(len(memdf)):
-    if(i > 0):
-        filename = args.output + "_checkpoint" + str(i-1) + ".json"
-        saving_list = ['block_rank', 'readcnt', 'writecnt']
-        block_rank, readcnt, writecnt = load_json(saving_list, filename)
-        print(block_rank, readcnt, writecnt)
-
-    block_rank, readcnt, writecnt = simulation(memdf[i], block_rank, readcnt, writecnt)
-    
-    savings = {'block_rank': block_rank, 'readcnt': readcnt, 'writecnt': writecnt}
-    filename = args.output + "_checkpoint" + str(i) + ".json"
-    save_json(savings, filename)
-"""
-
-## 2. load separate .csv file
-def lfu_simulation(startpoint, endpoint):  # , Subsequent=False):
+## load separate .csv file
+def lfu_simulation(startpoint, endpoint, input_filename, output_filename):
     ref_block = LFUCache()
     block_rank = dict()
     readcnt = list()
     writecnt = list()
 
     if (startpoint > 0):
-        filename = args.output + "_checkpoint" + str(startpoint - 1) + ".json"
+        filename = output_filename + "_checkpoint" + str(startpoint - 1) + ".json"
         saving_list = ['block_rank', 'readcnt', 'writecnt']
 
         block_rank, readcnt, writecnt = load_json(saving_list, filename)
@@ -243,60 +216,55 @@ def lfu_simulation(startpoint, endpoint):  # , Subsequent=False):
         # print(block_rank, readcnt, writecnt)
 
     for i in range(startpoint, endpoint):
-        memdf = pd.read_csv(args.input + '_' + str(i) + '.csv', sep=',', header=0, index_col=0, on_bad_lines='skip')
+        memdf = pd.read_csv(input_filename + '_' + str(i) + '.csv', sep=',', header=0, index_col=0, on_bad_lines='skip')
         ref_block, readcnt, writecnt = simulation(memdf, ref_block, readcnt, writecnt)
         block_rank = ref_block.get()
 
         savings = {'block_rank': block_rank,
                 'readcnt': readcnt,
                 'writecnt': writecnt}
-        filename = args.output + "_checkpoint" + str(i) + ".json"
+        filename = output_filename + "_checkpoint" + str(i) + ".json"
         save_json(savings, filename)
 
-lfu_simulation(0, args.chunk_group)  # , Subsequent=False)
-
 """##**memdf5 graph**"""
-filename = args.output + "_checkpoint" + str(args.chunk_group-1) + ".json"
-saving_list = ['block_rank', 'readcnt', 'writecnt']
+def lfu_graph(readcnt, writecnt, title, filname):
+    fig, ax = plot_frame(2, 1, title=title, xlabel='rank(temporal frequency)', ylabel='reference count', log_scale=True)
 
-block_rank, readcnt, writecnt = load_json(saving_list, filename)
+    #read
+    x1 = range(1,len(readcnt)+1)
+    y1 = readcnt
 
-#--
-fig, ax = plt.subplots(2, figsize=(10,10), constrained_layout=True, sharex=True, sharey=True) # sharex=True: share x axis
+    #write
+    x2 = range(1,len(writecnt)+1)
+    y2 = writecnt
 
-font_size=25
-parameters = {'axes.labelsize': font_size, 'axes.titlesize': font_size, 'xtick.labelsize': font_size, 'ytick.labelsize': font_size}
-plt.rcParams.update(parameters)
+    # read graph
+    ax[0].scatter(x1, y1, color='blue', label='read', s=3)
+    ax[0].legend(loc='lower left', ncol=1, fontsize=20, markerscale=3)
 
-if args.title != '':
-  plt.suptitle(args.title, fontsize=25)
+    # write graph
+    ax[1].scatter(x2, y2, color='red', label='write', s=3)
+    ax[1].legend(loc='lower left', ncol=1, fontsize=20, markerscale=3)
 
-#read
-x1 = range(1,len(readcnt)+1)
-y1 = readcnt
+    #plt.show()
+    plt.savefig(filename+'.png', dpi=300)
 
-#write
-x2 = range(1,len(writecnt)+1)
-y2 = writecnt
+#-----
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="plot lfu graph from log file")
+    parser.add_argument("--input", "-i", metavar='I', type=str, nargs='?', default='input.txt',
+                        help='input file')
+    parser.add_argument("--output", "-o", metavar='O', type=str, nargs='?', default='output.txt',
+                        help='output file')
+    parser.add_argument("--chunk_group", "-c", metavar='S', type=int, nargs='?', default=100,
+                        help='# of chunk group')
+    parser.add_argument("--title", "-t", metavar='T', type=str, nargs='?', default='',
+                        help='title of a graph')
+    args = parser.parse_args()
 
-# read graph
-ax[0].scatter(x1, y1, color='blue', label='read', s=5)
-ax[0].set_xscale('log')
-ax[0].set_yscale('log')
-# legend
-ax[0].set_xlabel('rank(temporal frequency)')
-ax[0].set_ylabel('reference count')
-ax[0].legend(loc=(1.0,0.8), ncol=1) #loc = 'best', 'upper right'
-
-# write graph
-ax[1].scatter(x2, y2, color='red', label='write', s=5)
-ax[1].set_xscale('log')
-ax[1].set_yscale('log')
-#ax[1].set_ylim([0.5, 1e7])
-# legend
-ax[1].set_xlabel('rank(temporal frequency)')
-ax[1].set_ylabel('reference count')
-ax[1].legend(loc=(1.0,0.8), ncol=1) #loc = 'best'
-
-#plt.show()
-plt.savefig(args.output+'.png', dpi=300)
+    lfu_simulation(0, args.chunk_group, input_filename=args.input, output_filename=args.output)
+    
+    filename = args.output + "_checkpoint" + str(args.chunk_group-1) + ".json"
+    saving_list = ['block_rank', 'readcnt', 'writecnt']
+    _, readcnt, writecnt = load_json(saving_list, filename)
+    lfu_graph(readcnt, writecnt, title=args.title, filname=args.output)

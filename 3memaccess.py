@@ -1,14 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import argparse
-parser = argparse.ArgumentParser(description="assign unique number to accessed memory area")
-parser.add_argument("--input", "-i", metavar='I', type=str, nargs='?', default='input.txt',
-                    help='input file')
-parser.add_argument("--output", "-o", metavar='O', type=str, nargs='?', default='output.txt',
-                    help='output file')
-args = parser.parse_args()
-
-
 import pandas as pd
 import numpy as np
 from load_and_save import save_csv
@@ -36,10 +28,18 @@ def read_write(df):
     return df
 
 #-----
-chunk = read_logfile_chunk(filename=args.input+'.csv')
-for i in range(len(chunk)):
-    chunk[i] = read_write(chunk[i])
-    save_csv(chunk[i], args.output, i)
-    save_csv(chunk[i], args.output+'_'+str(i)+'.csv', 0)
-    print(i)
-print('done!!')
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="assign unique number to accessed memory area")
+    parser.add_argument("--input", "-i", metavar='I', type=str, nargs='?', default='input.txt',
+                        help='input file')
+    parser.add_argument("--output", "-o", metavar='O', type=str, nargs='?', default='output.txt',
+                        help='output file')
+    args = parser.parse_args()
+
+    chunk = read_logfile_chunk(filename=args.input+'.csv')
+    for i in range(len(chunk)):
+        chunk[i] = read_write(chunk[i])
+        save_csv(chunk[i], args.output, i)
+        save_csv(chunk[i], args.output+'_'+str(i)+'.csv', 0)
+        print(i)
+    print('done!!')
