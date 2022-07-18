@@ -100,12 +100,12 @@ echo =====3memaccess.py is done!=====
 type4="$OUTPUT_DIR/memdf4/memdf4"
 chunk_dir="$OUTPUT_DIR/memdf0"
 chunk_nu=$(expr `ls -l $chunk_dir | grep ^- 2>/dev/null | wc -l` - 1)
-python3 $CODE_PATH/4lru.py -i ${type0::(-4)} -o $type4 -c $chunk_nu -t $TITLE
+python3 $CODE_PATH/4lru.py -i ${type0::(-4)} -o $type4 -s 0 -e $chunk_nu -t $TITLE
 echo =====4lru.py is done!=====
 
 # lfu
 type5="$OUTPUT_DIR/memdf5/memdf5"
 chunk_dir="$OUTPUT_DIR/memdf0"
 chunk_nu=$(expr `ls -l $chunk_dir | grep ^- 2>/dev/null | wc -l` - 1)
-python3 $CODE_PATH/5lfu.py -i ${type0::(-4)} -o $type5 -c $chunk_nu -t $TITLE
+python3 $CODE_PATH/5lfu.py -i ${type0::(-4)} -o $type5 -s 0 -e $chunk_nu -t $TITLE
 echo =====5lfu.py is done!=====

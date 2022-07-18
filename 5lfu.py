@@ -256,15 +256,17 @@ if __name__ == "__main__":
                         help='input file')
     parser.add_argument("--output", "-o", metavar='O', type=str, nargs='?', default='output.txt',
                         help='output file')
-    parser.add_argument("--chunk_group", "-c", metavar='S', type=int, nargs='?', default=100,
-                        help='# of chunk group')
+    parser.add_argument("--start_chunk", "-s", metavar='S', type=int, nargs='?', default=0,
+                        help='# of start chunk')
+    parser.add_argument("--end_chunk", "-e", metavar='E', type=int, nargs='?', default=100,
+                        help='# of end chunk')
     parser.add_argument("--title", "-t", metavar='T', type=str, nargs='?', default='',
                         help='title of a graph')
     args = parser.parse_args()
 
-    lfu_simulation(0, args.chunk_group, input_filename=args.input, output_filename=args.output)
+    lfu_simulation(args.start_chunk, args.end_chunk, input_filename=args.input, output_filename=args.output)
     
-    filename = args.output + "_checkpoint" + str(args.chunk_group-1) + ".json"
+    filename = args.output + "_checkpoint" + str(args.end_chunk-1) + ".json"
     saving_list = ['block_rank', 'readcnt', 'writecnt']
     _, readcnt, writecnt = load_json(saving_list, filename)
     lfu_graph(readcnt, writecnt, title=args.title, filname=args.output)
