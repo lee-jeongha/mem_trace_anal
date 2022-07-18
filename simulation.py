@@ -49,3 +49,19 @@ def separately_rank_simulation(df, read_block_rank, read_cnt, write_block_rank, 
                 write_cnt[acc_rank] += 1
 
     return read_block_rank, read_cnt, write_block_rank, write_cnt
+
+def simulation_regardless_of_type(df, block_rank, ref_cnt):
+    for index, row in df.iterrows():  ### one by one
+        ### Increase readcnt/writecnt by matching 'type' and block_rank
+        acc_rank = block_rank.reference(row['blockaddress'])
+        if acc_rank == -1:
+            continue
+        else:
+            try:
+                ref_cnt[acc_rank] += 1  # Increase [acc_rank]th element of readcnt by 1
+            except IndexError:  # ***list index out of range
+                for i in range(len(ref_cnt), acc_rank + 1):
+                    ref_cnt.insert(i, 0)
+                ref_cnt[acc_rank] += 1
+
+    return block_rank, ref_cnt
