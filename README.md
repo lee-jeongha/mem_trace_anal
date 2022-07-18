@@ -2,8 +2,8 @@
 
 For ananlyzing memory trace and plotting graph
 
-The row file was obtained through a modified valgrind.
-The contents of the row file are as follows:
+The raw file was obtained through a modified valgrind.
+The contents of the raw file are as follows:
 
 ```
 readi 0x04935caf 6 
