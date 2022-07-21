@@ -7,23 +7,39 @@ from load_and_save import save_csv
 
 """##**memaccess**"""
 
-def read_logfile_chunk(filename):
-    # 1. read csv file
-    chunk = pd.read_csv(filename, names=['type', 'address', 'size', 'blockaddress'], header=0, chunksize=1000000)
-    chunk = list(chunk)
-    for i in range(len(chunk)):
-        chunk[i] = chunk[i].drop(['address','size'], axis=1)  
-    return chunk
+def get_access_block_num(input_filename, chunks=100):
+    blk_num_df = pd.DataFrame()
 
-def read_write(df):
-    df['acc_blk'] = df['blockaddress'].rank(method='dense')
-    df['blk_readi'] = df['acc_blk']
-    df['blk_readd'] = df['acc_blk']
-    df['blk_write'] = df['acc_blk']
+    for i in range(chunks): 
+        filename = input_filename+'_'+str(i)+'.csv'
+
+        try:
+            df = pd.read_csv(filename, sep=',', header=0, index_col=0, on_bad_lines='skip')
+            df = df.drop_duplicates(keep='first', subset='blockaddress')
+            blk_num_df = pd.concat([blk_num_df, df])
+            blk_num_df = blk_num_df.drop_duplicates(keep='first', subset='blockaddress')
+        except FileNotFoundError:
+            print("No file named: ", filename)
+            break
+    
+    blk_num_df = blk_num_df.drop_duplicates(keep='first', subset='blockaddress')
+    blk_num_df['acc_blk_num'] = np.arange(len(blk_num_df))
+
+    return blk_num_df[['blockaddress', 'acc_blk_num']]
+
+def set_unique_block_num(df, blk_num_df):
+    # df['acc_blk'] = df['blockaddress'].rank(method='dense')
+    df = df.join(blk_num_df.set_index('blockaddress'), on='blockaddress')
+
+    df['blk_readi'] = df['acc_blk_num']
+    df['blk_readd'] = df['acc_blk_num']
+    df['blk_write'] = df['acc_blk_num']
 
     df.loc[(df.type!='readi'), 'blk_readi'] = np.NaN
     df.loc[(df.type!='readd'), 'blk_readd'] = np.NaN
     df.loc[(df.type!='write'), 'blk_write'] = np.NaN
+
+    df = df[['blk_readi', 'blk_readd', 'blk_write']]
 
     return df
 
@@ -34,12 +50,21 @@ if __name__ == "__main__":
                         help='input file')
     parser.add_argument("--output", "-o", metavar='O', type=str, nargs='?', default='output.txt',
                         help='output file')
+    parser.add_argument("--chunk_group", "-c", metavar='C', type=int, nargs='?', default=100,
+                        help='# of chunk group')
+    parser.add_argument("--blk_num", "-b", metavar='B', type=str, nargs='?', default=None,
+                        help='unique block number assigned in order of access')
     args = parser.parse_args()
 
-    chunk = read_logfile_chunk(filename=args.input+'.csv')
-    for i in range(len(chunk)):
-        chunk[i] = read_write(chunk[i])
-        save_csv(chunk[i], args.output, i)
-        save_csv(chunk[i], args.output+'_'+str(i)+'.csv', 0)
+    if not args.blk_num:
+        blk_num_df = get_access_block_num(args.input, args.chunk_group)
+        save_csv(blk_num_df, args.output+'_blk-num'+'.csv', 0)
+
+    for i in range(args.chunk_group):
+        chunk = pd.read_csv(args.input+'_'+str(i)+'.csv', sep=',', header=0, index_col=0, on_bad_lines='skip')
+    
+        chunk = set_unique_block_num(chunk, blk_num_df)
+        save_csv(chunk, args.output+'.csv', i)
+        #save_csv(chunk, args.output+'_'+str(i)+'.csv', 0)
         print(i)
     print('done!!')

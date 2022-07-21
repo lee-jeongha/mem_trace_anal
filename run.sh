@@ -90,9 +90,9 @@ gnuplot << EOF
   set ylabel "unique block address number"
   set term png size 1500,1100
   set output "${type3}.png"
-  plot "${type3}" using 1:5 lt rgb "blue" title "readi", \
-"${type3}" using 1:6 lt rgb "red" title "readd", \
-"${type3}" using 1:7 lt rgb "forest-green" title "write"
+  plot "${type3}.csv" using 1:2 lt rgb "blue" title "readi", \
+"${type3}.csv" using 1:3 lt rgb "red" title "readd", \
+"${type3}.csv" using 1:4 lt rgb "forest-green" title "write"
 EOF
 echo =====3memaccess.py is done!=====
 
