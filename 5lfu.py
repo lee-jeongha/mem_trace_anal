@@ -179,40 +179,50 @@ class LFUCache(object):
 def lfu_simulation(startpoint, endpoint, input_filename, output_filename):
     ref_block = LFUCache()
     block_rank = dict()
-    readcnt = list()
-    writecnt = list()
+    read_cnt = list()
+    write_cnt = list()
 
     if (startpoint > 0):
         filename = output_filename + "_checkpoint" + str(startpoint - 1) + ".json"
-        saving_list = ['block_rank', 'readcnt', 'writecnt']
+        saving_list = ['block_rank', 'read_cnt', 'write_cnt']
 
-        block_rank, readcnt, writecnt = load_json(saving_list, filename)
+        block_rank, read_cnt, write_cnt = load_json(saving_list, filename)
         block_rank = {int(k): v for k, v in block_rank.items()}
         ref_block.set(block_rank)
-        # print(block_rank, readcnt, writecnt)
+        # print(block_rank, read_cnt, write_cnt)
 
     for i in range(startpoint, endpoint):
-        memdf = pd.read_csv(input_filename + '_' + str(i) + '.csv', sep=',', header=0, index_col=0, on_bad_lines='skip')
-        ref_block, readcnt, writecnt = simulation(memdf, ref_block, readcnt, writecnt)
+        try:
+            memdf = pd.read_csv(input_filename + '_' + str(i) + '.csv', sep=',', header=0, index_col=0, on_bad_lines='skip')
+        except FileNotFoundError:
+            print("no file named:", input_filename + '_' + str(i) + '.csv')
+            break
+
+        ref_block, read_cnt, write_cnt = simulation(memdf, ref_block, read_cnt, write_cnt)
         block_rank = ref_block.get()
 
         savings = {'block_rank': block_rank,
-                'readcnt': readcnt,
-                'writecnt': writecnt}
+                'read_cnt': read_cnt,
+                'write_cnt': write_cnt}
         filename = output_filename + "_checkpoint" + str(i) + ".json"
         save_json(savings, filename)
 
 """##**memdf5 graph**"""
-def lfu_graph(readcnt, writecnt, title, filname):
-    fig, ax = plot_frame(2, 1, title=title, xlabel='rank(temporal frequency)', ylabel='reference count', log_scale=True)
+def lfu_graph(read_cnt, write_cnt, title, filename, xlim : list = None, ylim : list = None):
+    fig, ax = plot_frame((2, 1), title=title, xlabel='rank(temporal frequency)', ylabel='reference count', log_scale=True)
+
+    if xlim:
+        plt.setp(ax, xlim=xlim)
+    if ylim:
+        plt.setp(ax, ylim=ylim)
 
     #read
-    x1 = range(1,len(readcnt)+1)
-    y1 = readcnt
+    x1 = range(1,len(read_cnt)+1)
+    y1 = read_cnt
 
     #write
-    x2 = range(1,len(writecnt)+1)
-    y2 = writecnt
+    x2 = range(1,len(write_cnt)+1)
+    y2 = write_cnt
 
     # read graph
     ax[0].scatter(x1, y1, color='blue', label='read', s=3)
@@ -233,16 +243,16 @@ if __name__ == "__main__":
     parser.add_argument("--output", "-o", metavar='O', type=str, nargs='?', default='output.txt',
                         help='output file')
     parser.add_argument("--start_chunk", "-s", metavar='S', type=int, nargs='?', default=0,
-                        help='# of start chunk')
+                        help='start chunk index')
     parser.add_argument("--end_chunk", "-e", metavar='E', type=int, nargs='?', default=100,
-                        help='# of end chunk')
+                        help='end chunk index')
     parser.add_argument("--title", "-t", metavar='T', type=str, nargs='?', default='',
                         help='title of a graph')
     args = parser.parse_args()
 
-    lfu_simulation(args.start_chunk, args.end_chunk, input_filename=args.input, output_filename=args.output)
+    lfu_simulation(args.start_chunk, args.end_chunk + 1, input_filename=args.input, output_filename=args.output)
     
-    filename = args.output + "_checkpoint" + str(args.end_chunk-1) + ".json"
-    saving_list = ['block_rank', 'readcnt', 'writecnt']
-    _, readcnt, writecnt = load_json(saving_list, filename)
-    lfu_graph(readcnt, writecnt, title=args.title, filname=args.output)
+    filename = args.output + "_checkpoint" + str(args.end_chunk) + ".json"
+    saving_list = ['block_rank', 'read_cnt', 'write_cnt']
+    _, read_cnt, write_cnt = load_json(saving_list, filename)
+    lfu_graph(read_cnt, write_cnt, title=args.title, filename=args.output)

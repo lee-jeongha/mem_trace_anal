@@ -50,17 +50,17 @@ if __name__ == "__main__":
                         help='input file')
     parser.add_argument("--output", "-o", metavar='O', type=str, nargs='?', default='output.txt',
                         help='output file')
-    parser.add_argument("--chunk_group", "-c", metavar='C', type=int, nargs='?', default=100,
-                        help='# of chunk group')
+    parser.add_argument("--chunk_count", "-c", metavar='C', type=int, nargs='?', default=100,
+                        help='the number of chunk groups')
     parser.add_argument("--blk_num", "-b", metavar='B', type=str, nargs='?', default=None,
                         help='unique block number assigned in order of access')
     args = parser.parse_args()
 
     if not args.blk_num:
-        blk_num_df = get_access_block_num(args.input, args.chunk_group)
+        blk_num_df = get_access_block_num(args.input, args.chunk_count)
         save_csv(blk_num_df, args.output+'_blk-num'+'.csv', 0)
 
-    for i in range(args.chunk_group):
+    for i in range(args.chunk_count):
         chunk = pd.read_csv(args.input+'_'+str(i)+'.csv', sep=',', header=0, index_col=0, on_bad_lines='skip')
     
         chunk = set_unique_block_num(chunk, blk_num_df)

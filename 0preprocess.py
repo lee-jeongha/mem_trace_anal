@@ -6,7 +6,7 @@ from load_and_save import save_csv
 
 """##**preprocess**"""
 
-def read_logfile_chunk(filename):
+def read_logfile_chunk(filename, chunksize):
     # 1. find start line
     f = open(filename, 'r')
     #memdata = f.readlines() # read all lines from file
@@ -20,10 +20,9 @@ def read_logfile_chunk(filename):
     print("startline:",startline)
 
     # 2. read csv file
-    #chunk = pd.read_csv(filename, names=['type', 'address', 'size'], delim_whitespace=True, lineterminator="\n", skiprows=startline-1, chunksize=1000000, header=None, on_bad_lines='skip')
-    chunk = pd.read_csv(filename, names=['type', 'address', 'size'], delim_whitespace=True, escapechar="\n", lineterminator="\r", skiprows=startline-1, chunksize=1000000, header=None, on_bad_lines='skip')
+    chunk = pd.read_csv(filename, names=['type', 'address', 'size'], delim_whitespace=True, lineterminator="\n", skiprows=startline-1, chunksize=chunksize, header=None, on_bad_lines='skip')
+    #chunk = pd.read_csv(filename, names=['type', 'address', 'size'], delim_whitespace=True, escapechar="\n", lineterminator="\r", skiprows=startline-1, chunksize=chunksize, header=None, on_bad_lines='skip')
     chunk = list(chunk)
-    #print(chunk[-1])
   
     return chunk
 
@@ -45,12 +44,14 @@ if __name__ == "__main__":
                         help='input file')
     parser.add_argument("--output", "-o", metavar='O', type=str, nargs='?', default='output.txt',
                         help='output file')
+    parser.add_argument("--chunksize", "-c", metavar='C', type=int, nargs='?', default=1000000,
+                        help='size of each chunk groups')
     args = parser.parse_args()
 
-    chunk = read_logfile_chunk(filename=args.input)
+    chunk = read_logfile_chunk(filename=args.input, chunksize=args.chunksize)
     for i in range(len(chunk)):
         chunk[i] = chunk_preprocess(chunk[i])
-        save_csv(chunk[i], args.output+'.csv', i)
+        #save_csv(chunk[i], args.output+'.csv', i)
         save_csv(chunk[i], args.output+'_'+str(i)+'.csv', 0)
         print(i)
     print('done!!')

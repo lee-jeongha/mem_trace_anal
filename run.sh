@@ -72,12 +72,12 @@ echo =====0preprocess.py is done!=====
 # reference count per block
 type1="$OUTPUT_DIR/memdf1/memdf1"
 #python3 $CODE_PATH/1refcountperblock.py -i ${type0::(-4)} -o $type1 -d -t $TITLE
-python3 $CODE_PATH/1refcountperblock.py -i ${type0::$((${#type0}-4))} -o $type1 -d -t $TITLE
+python3 $CODE_PATH/1refcountperblock.py -i ${type0::$((${#type0}-4))} -o $type1 -d -l -t $TITLE
 echo =====1refcountperblock.py is done!=====
 
 # popularity
 type2="$OUTPUT_DIR/memdf2/memdf2"
-python3 $CODE_PATH/2popularity.py -i $type1 -o $type2 -z -t $TITLE
+python3 $CODE_PATH/2popularity.py -i $type1 -o $type2 -z -p -t $TITLE
 echo =====2popularity.py is done!=====
 
 # memory access per logical time

@@ -100,7 +100,7 @@ def instruction_cnt_graph(title, filename, readi_cnt, readd_cnt, write_cnt):
     cnt_sum = readi_cnt + readd_cnt + write_cnt
     percentile_values = np.divide(values, cnt_sum/100).round(3)
 
-    fig, ax = plot_frame(1, 1, title=title, xlabel='instruction type', ylabel='instruction count', share_yaxis='col')
+    fig, ax = plot_frame((1, 1), title=title, xlabel='instruction type', ylabel='instruction count', share_yaxis='col')
     
     rects = plt.bar(x, values, color=colors)
     plt.xticks(x, x_label)
@@ -113,63 +113,70 @@ def instruction_cnt_graph(title, filename, readi_cnt, readd_cnt, write_cnt):
     plt.savefig(filename+'_instruction.png', dpi=300)
 
 """memdf1.1 graph"""
-def ref_cnt_graph(df, title, filename):
+def ref_cnt_graph(df, title, filename, ylim : list = None):
     x1 = df['blockaddress'][(df['type']=='read')]
     x2 = df['blockaddress'][(df['type']=='write')]
+    x3 = df['blockaddress'][(df['type']=='read&write')]
+
     y1 = df['count'][(df['type']=='read')]
     y2 = df['count'][(df['type']=='write')]
+    y3 = df['count'][(df['type']=='read&write')]
 
-    fig, ax = plot_frame(2, 1, title=title, xlabel='(virtual) memory block address', ylabel='memory block reference count')
+    print("memory footprint(4KB):", len(x3))
+    print("memory footprint by reads(4KB):", len(x1))
+    print("memory footprint by writes(4KB):", len(x2))
 
-    print(x1.max(), x2.max())
-    print(y1.min(), y1.max(), digit_length(y1.max()))
-    print(y2.min(), y2.max(), digit_length(y2.max()))
+    fig, ax = plot_frame((3, 1), (7, 4), title=title, xlabel='(virtual) memory block address', ylabel='memory block reference count')
+    x = [x1, x2, x3]
+    y = [y1, y2, y3]
+    color = ['blue', 'red', 'green']
+    label = ['read', 'write', 'read&write']
 
-    # read graph
-    ax[0].scatter(x1, y1, color='blue', label='read', s=3)
-    ax[0].legend(loc='upper right', ncol=1, fontsize=20, markerscale=3) #loc = (1.0,0.8)
+    if ylim:
+        plt.setp(ax, ylim=ylim)
 
-    # write graph
-    ax[1].scatter(x2, y2, color='red', label='write', s=3)
-    ax[1].legend(loc='upper right', ncol=1, fontsize=20, markerscale=3) #loc = (1.0,0.8)
+    #print("read count[min,max]:", y1.min(), y1.max(), digit_length(y1.max()))
+    #print("write count[min,max]:", y2.min(), y2.max(), digit_length(y2.max()))
+
+    for i in range(len(x)):
+        ax[i].scatter(x[i], y[i], color=color[i], label=label[i], s=3)
+        ax[i].legend(loc='upper right', ncol=1, fontsize=20, markerscale=3) #loc = (1.0,0.8)
 
     #plt.show()
     plt.savefig(filename+'.png', dpi=300)
 
 """memdf1.2 graph"""
-def ref_cnt_distribute_graph(df, title, filename):
+def ref_cnt_distribute_graph(df, title, filename, cnt_ylim : list = None, dist_ylim : list = None):
     y1 = df['count'][(df['type']=='read')]
     y2 = df['count'][(df['type']=='write')]
+    y3 = df['count'][(df['type']=='read&write')]
 
-    fig, ax = plot_frame(2, 2, title=title, xlabel='reference count', ylabel='# of memory block', share_yaxis='col')
+    fig, ax = plot_frame((3, 2), title=title, xlabel='reference count', ylabel='# of memory block', font_size=40, share_yaxis='col')
+    y = [y1, y2, y3]
+    color = ['blue', 'red', 'green']
+    label = ['read', 'write', 'read&write']
+
     plt.xscale('log')
 
     bin_list = [1]
-    if(y1.max() > y2.max()):
-        bin_list.extend([ 10**i + 1 for i in range(digit_length(y1.max()) + 1) ])
-    else:
-        bin_list.extend([ 10**i + 1 for i in range(digit_length(y2.max()) + 1) ])
+    x_lim = max(y1.max(), y2.max(), y3.max())
+    bin_list.extend([ 10**i + 1 for i in range(digit_length(x_lim) + 1) ])
+    
+    for i in range(len(y)):
+        """histogram"""
+        counts, edges, bars = ax[i][0].hist(y[i], bins=bin_list, density=False, rwidth=3, color=color[i], edgecolor='black', label=label[i])
+        ax[i][0].legend(loc='upper right', ncol=1, fontsize=30)
+        hist_label(ax[i][0], counts, bars)
 
-    # read graph
-    counts, edges, bars = ax[0][0].hist(y1, bins=bin_list, density=False, rwidth=3, color='blue', edgecolor='black', label='read')
-    ax[0][0].legend(loc='upper right', ncol=1, fontsize=20)
-    hist_label(ax[0][0], counts, bars)
+        """normalized histogram"""
+        counts, edges, bars = ax[i][1].hist(y[i], bins=bin_list, density=True, rwidth=3, color=color[i], edgecolor='black', label=label[i])
+        ax[i][1].legend(loc='upper right', ncol=1, fontsize=30)
+        hist_label(ax[i][1], counts, bars, 5)
 
-    # write graph
-    counts, edges, bars = ax[1][0].hist(y2, bins=bin_list, density=False, rwidth=3, color='red', edgecolor='black', label='write')
-    ax[1][0].legend(loc='upper right', ncol=1, fontsize=20)
-    hist_label(ax[1][0], counts, bars)
-
-    """normalized graph"""
-    # read graph
-    counts, edges, bars = ax[0][1].hist(y1, bins=bin_list, density=True, rwidth=3, color='blue', edgecolor='black', label='read')
-    ax[0][1].legend(loc='upper right', ncol=1, fontsize=20)
-    hist_label(ax[0][1], counts, bars, 5)
-
-    # write graph
-    counts, edges, bars = ax[1][1].hist(y2, bins=bin_list, density=True, rwidth=3, color='red', edgecolor='black', label='write')
-    ax[1][1].legend(loc='upper right', ncol=1, fontsize=20)
-    hist_label(ax[1][1], counts, bars, 5)
+    if cnt_ylim:
+        ax[0][0].set_ylim(cnt_ylim)
+    if dist_ylim:
+        ax[0][1].set_ylim(dist_ylim)
 
     #plt.show()
     plt.savefig(filename+'_hist.png', dpi=300)
@@ -181,22 +188,25 @@ if __name__ == "__main__":
                         help='input file')
     parser.add_argument("--output", "-o", metavar='O', type=str, nargs='?', default='output.txt',
                         help='output file')
-    parser.add_argument("--chunk_group", "-c", metavar='S', type=int, nargs='?', default=100,
-                        help='# of chunk group')
-    parser.add_argument("--distribution", "-d", action='store_true',
+    parser.add_argument("--chunk_count", "-c", metavar='C', type=int, nargs='?', default=100,
+                        help='the number of chunk groups')
+    parser.add_argument("--plot_logcnt", "-l", action='store_true',
+                        help='plot histogram by instruction type of log file')
+    parser.add_argument("--plot_distribution", "-d", action='store_true',
                         help='plot histogram bound by reference count')
     parser.add_argument("--title", "-t", metavar='T', type=str, nargs='?', default='',
                         help='title of a graph')
     args = parser.parse_args()
 
-    memdf1 = ref_cnt_per_block(input_filename=args.input, chunks=args.chunk_group)
+    memdf1 = ref_cnt_per_block(input_filename=args.input, chunks=args.chunk_count)
     save_csv(memdf1, args.output+'.csv', 0)
 
-    instruction_cnt_graph(title=args.title, filename=args.output, readi_cnt=memdf1.iloc[0, 3], readd_cnt=memdf1.iloc[0, 4], write_cnt=memdf1.iloc[0, 5])
+    if (args.plot_logcnt):
+        instruction_cnt_graph(title=args.title, filename=args.output, readi_cnt=memdf1.iloc[0, 3], readd_cnt=memdf1.iloc[0, 4], write_cnt=memdf1.iloc[0, 5])
 
     #memdf1 = pd.read_csv(args.output+'.csv', sep=',', header=0, index_col=0, on_bad_lines='skip')
     ref_cnt_graph(memdf1, title=args.title, filename=args.output)
 
-    if (args.distribution):
+    if (args.plot_distribution):
         plt.clf() # Clear the current figure
         ref_cnt_distribute_graph(memdf1, title=args.title, filename=args.output)
