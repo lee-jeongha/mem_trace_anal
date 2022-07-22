@@ -193,7 +193,12 @@ def lfu_simulation(startpoint, endpoint, input_filename, output_filename, type='
         # print(block_rank, ref_cnt)
 
     for i in range(startpoint, endpoint):
-        memdf = pd.read_csv(input_filename + '_' + str(i) + '.csv', sep=',', header=0, index_col=0, on_bad_lines='skip')
+        try:
+            memdf = pd.read_csv(input_filename + '_' + str(i) + '.csv', sep=',', header=0, index_col=0, on_bad_lines='skip')
+        except FileNotFoundError:
+            print("no file named:", input_filename + '_' + str(i) + '.csv')
+            break
+
         if type == 'read':
             memdf = memdf[memdf['type'] != 'write']
         elif type == 'write':
@@ -240,9 +245,9 @@ if __name__ == "__main__":
     parser.add_argument("--output", "-o", metavar='O', type=str, nargs='?', default='output.txt',
                         help='output file')
     parser.add_argument("--start_chunk", "-s", metavar='S', type=int, nargs='?', default=0,
-                        help='# of start chunk')
+                        help='start chunk index')
     parser.add_argument("--end_chunk", "-e", metavar='E', type=int, nargs='?', default=100,
-                        help='# of end chunk')
+                        help='end chunk index')
     parser.add_argument("--title", "-t", metavar='T', type=str, nargs='?', default='',
                         help='title of a graph')
     args = parser.parse_args()
