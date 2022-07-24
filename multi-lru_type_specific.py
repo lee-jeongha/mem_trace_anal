@@ -78,7 +78,7 @@ def lru_simulation(startpoint, endpoint, input_filename, output_filename, type='
         save_json(savings, filename)
 
 """##**memdf4 graph**"""
-def lru_graph(read_cnt, write_cnt, title, filname):
+def lru_graph(read_cnt, write_cnt, title, filename):
     fig, ax = plot_frame(2, 1, title=title, xlabel='rank(temporal locality)', ylabel='reference count', log_scale=True)
 
     #read
@@ -98,7 +98,7 @@ def lru_graph(read_cnt, write_cnt, title, filname):
     ax[1].legend(loc='lower left', ncol=1, fontsize=20, markerscale=3)
 
     #plt.show()
-    plt.savefig(filname+'.png', dpi=300)
+    plt.savefig(filename+'.png', dpi=300)
 
 #-----
 if __name__ == "__main__":
@@ -115,8 +115,8 @@ if __name__ == "__main__":
                         help='title of a graph')
     args = parser.parse_args()
 
-    p1 = Process(target=lru_simulation, args=(args.start_chunk, args.end_chunk, args.input, args.output, 'read'))
-    p2 = Process(target=lru_simulation, args=(args.start_chunk, args.end_chunk, args.input, args.output, 'write'))
+    p1 = Process(target=lru_simulation, args=(args.start_chunk, args.end_chunk + 1, args.input, args.output, 'read'))
+    p2 = Process(target=lru_simulation, args=(args.start_chunk, args.end_chunk + 1, args.input, args.output, 'write'))
  
     p1.start()
     p2.start()
@@ -125,8 +125,8 @@ if __name__ == "__main__":
     p2.join()
 
     saving_list = ['block_rank', 'ref_cnt']
-    filename = args.output + "-read_checkpoint" + str(args.end_chunk-1) + ".json"
+    filename = args.output + "-read_checkpoint" + str(args.end_chunk) + ".json"
     _, read_cnt = load_json(saving_list, filename)
-    filename = args.output + "-write_checkpoint" + str(args.end_chunk-1) + ".json"
+    filename = args.output + "-write_checkpoint" + str(args.end_chunk) + ".json"
     _, write_cnt = load_json(saving_list, filename)
-    lru_graph(read_cnt, write_cnt, title=args.title, filname=args.output)
+    lru_graph(read_cnt, write_cnt, title=args.title, filename=args.output)

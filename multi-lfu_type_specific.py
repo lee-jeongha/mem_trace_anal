@@ -252,8 +252,8 @@ if __name__ == "__main__":
                         help='title of a graph')
     args = parser.parse_args()
 
-    p1 = Process(target=lfu_simulation, args=(args.start_chunk, args.end_chunk, args.input, args.output, 'read'))
-    p2 = Process(target=lfu_simulation, args=(args.start_chunk, args.end_chunk, args.input, args.output, 'write'))
+    p1 = Process(target=lfu_simulation, args=(args.start_chunk, args.end_chunk + 1, args.input, args.output, 'read'))
+    p2 = Process(target=lfu_simulation, args=(args.start_chunk, args.end_chunk + 1, args.input, args.output, 'write'))
  
     p1.start()
     p2.start()
@@ -262,8 +262,8 @@ if __name__ == "__main__":
     p2.join()
 
     saving_list = ['block_rank', 'ref_cnt']
-    filename = args.output + "-read_checkpoint" + str(args.end_chunk-1) + ".json"
+    filename = args.output + "-read_checkpoint" + str(args.end_chunk) + ".json"
     _, read_cnt = load_json(saving_list, filename)
-    filename = args.output + "-write_checkpoint" + str(args.end_chunk-1) + ".json"
+    filename = args.output + "-write_checkpoint" + str(args.end_chunk) + ".json"
     _, write_cnt = load_json(saving_list, filename)
     lfu_graph(read_cnt, write_cnt, title=args.title, filename=args.output)

@@ -245,7 +245,7 @@ def lfu_simulation_by_type(startpoint, endpoint, input_filename, output_filename
         save_json(savings, filename)
 
 """##**memdf5 graph**"""
-def lfu_graph(read_cnt, write_cnt, title, filname):
+def lfu_graph(read_cnt, write_cnt, title, filename):
     fig, ax = plot_frame(2, 1, title=title, xlabel='rank(temporal frequency)', ylabel='reference count', log_scale=True)
 
     #read
@@ -282,8 +282,8 @@ if __name__ == "__main__":
                         help='title of a graph')
     args = parser.parse_args()
 
-    p1 = Process(target=lfu_simulation, args=(args.start_chunk, args.end_chunk, args.input, args.output))
-    p2 = Process(target=lfu_simulation_by_type, args=(args.start_chunk, args.end_chunk, args.input, args.output))
+    p1 = Process(target=lfu_simulation, args=(args.start_chunk, args.end_chunk + 1, args.input, args.output))
+    p2 = Process(target=lfu_simulation_by_type, args=(args.start_chunk, args.end_chunk + 1, args.input, args.output))
  
     p1.start()
     p2.start()
@@ -292,11 +292,11 @@ if __name__ == "__main__":
     p2.join()
 
     saving_list = ['block_rank', 'read_cnt', 'write_cnt']
-    filename = args.output + "_checkpoint" + str(args.end_chunk-1) + ".json"
+    filename = args.output + "_checkpoint" + str(args.end_chunk) + ".json"
     _, read_cnt, write_cnt = load_json(saving_list, filename)
-    lfu_graph(read_cnt, write_cnt, title=args.title, filname=args.output+"_overall-rank")
+    lfu_graph(read_cnt, write_cnt, title=args.title, filename=args.output+"_overall-rank")
 
-    filename = args.output + "-by-type_checkpoint" + str(args.end_chunk-1) + ".json"
+    filename = args.output + "-by-type_checkpoint" + str(args.end_chunk) + ".json"
     saving_list = ['read_block_rank', 'read_cnt', 'write_block_rank', 'write_cnt']
     _, read_cnt, _, write_cnt = load_json(saving_list, filename)
-    lfu_graph(read_cnt, write_cnt, title=args.title, filname=args.output+"_rank-by-type")
+    lfu_graph(read_cnt, write_cnt, title=args.title, filename=args.output+"_rank-by-type")
