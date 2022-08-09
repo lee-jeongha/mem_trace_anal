@@ -15,6 +15,12 @@ from plot_graph import plot_frame
 """
 def ref_count_rank(df):
     # ranking
+    readi_rank = df['count'][(df['type']=='readi')].rank(ascending=False)
+    df.loc[(df['type']=='readi'), ['type_rank']] = readi_rank
+
+    readd_rank = df['count'][(df['type']=='readd')].rank(ascending=False)
+    df.loc[(df['type']=='readd'), ['type_rank']] = readd_rank
+
     read_rank = df['count'][(df['type']=='read')].rank(ascending=False)
     df.loc[(df['type']=='read'), ['type_rank']] = read_rank
 
@@ -31,17 +37,27 @@ def ref_count_rank(df):
 * y axis : % of reference count
 """
 def ref_count_percentile_rank(df):
+    total_readi = df['count'][(df['type']=='readi')].sum()
+    total_readd = df['count'][(df['type']=='readd')].sum()
     total_read = df['count'][(df['type']=='read')].sum()
     total_write = df['count'][(df['type']=='write')].sum()
     total_rw = df['count'][(df['type']=='read&write')].sum()
 
     # percentage
     df['type_pcnt'] = df['count']
+    df.loc[(df['type']=='readi'), ['type_pcnt']] /= total_readi
+    df.loc[(df['type']=='readd'), ['type_pcnt']] /= total_readd
     df.loc[(df['type']=='read'), ['type_pcnt']] /= total_read
     df.loc[(df['type']=='write'), ['type_pcnt']] /= total_write
     df.loc[(df['type']=='read&write'), ['type_pcnt']] /= total_rw
 
     # ranking in percentile form
+    readi_rank = df['type_pcnt'][(df['type']=='readi')].rank(ascending=False, pct=True)
+    df.loc[(df['type']=='readi'), ['type_pcnt_rank']] = readi_rank
+
+    readd_rank = df['type_pcnt'][(df['type']=='readd')].rank(ascending=False, pct=True)
+    df.loc[(df['type']=='readd'), ['type_pcnt_rank']] = readd_rank
+
     read_rank = df['type_pcnt'][(df['type']=='read')].rank(ascending=False, pct=True)
     df.loc[(df['type']=='read'), ['type_pcnt_rank']] = read_rank
 
@@ -73,15 +89,21 @@ def zipf_fitting(freqs):
 
 """memdf2.1 graph"""
 def popularity_graph(df, title, filname, xlim : list = None, ylim : list = None, zipf=False):
+    #readi
+    x1 = df['type_rank'][(df['type']=='readi')]
+    y1 = df['count'][(df['type']=='readi')]
+    #readd
+    x2 = df['type_rank'][(df['type']=='readd')]
+    y2 = df['count'][(df['type']=='readd')]
     #read
-    x1 = df['type_rank'][(df['type']=='read')]
-    y1 = df['count'][(df['type']=='read')]
+    x3 = df['type_rank'][(df['type']=='read')]
+    y3 = df['count'][(df['type']=='read')]
     #write
-    x2 = df['type_rank'][(df['type']=='write')]
-    y2 = df['count'][(df['type']=='write')]
+    x4 = df['type_rank'][(df['type']=='write')]
+    y4 = df['count'][(df['type']=='write')]
     #read&write
-    x3 = df['type_rank'][(df['type']=='read&write')]
-    y3 = df['count'][(df['type']=='read&write')]
+    x = df['type_rank'][(df['type']=='read&write')]
+    y = df['count'][(df['type']=='read&write')]
 
     if zipf:
         fig, ax = plot_frame((1, 1), title=title, xlabel='ranking', ylabel='memory block access count', log_scale=True)
@@ -91,29 +113,29 @@ def popularity_graph(df, title, filname, xlim : list = None, ylim : list = None,
         if ylim:
             plt.setp(ax, ylim=ylim)
 
+        x_list = [x, x1, x2, x3, x4]
+        y_list = [y, y1, y2, y3, y4]
+        colors = ['green', 'cornflowerblue', 'blue', 'darkblue', 'red']
+        labels = ['read&write', 'readi', 'readd', 'read', 'write']
+
         #scatter
-        ax.scatter(x1, y1, color='blue', label='read', s=3)
-        ax.scatter(x2, y2, color='red', label='write', s=3)
-        ax.scatter(x3, y3, color='green', label='read&write', s=3)
+        for i in [1,2,4,0]: #[1,2,3,4,0]:
+            ax.scatter(x_list[i], y_list[i], color=colors[i], label=labels[i], s=3)
 
         #curve fitting
-        s_best1 = zipf_fitting(y1)
-        s_best2 = zipf_fitting(y2)
-        s_best3 = zipf_fitting(y3)
-        ax.plot(x1, func_powerlaw(x1, *s_best1), color="skyblue", lw=2, label="curve_fitting: read")
-        ax.plot(x2, func_powerlaw(x2, *s_best2), color="salmon", lw=2, label="curve_fitting: write")
-        ax.plot(x3, func_powerlaw(x3, *s_best3), color="limegreen", lw=2, label="curve_fitting: read&write")
-  
-        """ax.annotate(str(round(s_best1[0],5)), xy=(10, func_powerlaw(10, *s_best1)), xycoords='data',
-                     xytext=(-10.0, -70.0), textcoords="offset points", color="steelblue", size=13,
-                     arrowprops=dict(arrowstyle="->", ls="--", color="steelblue", connectionstyle="arc3,rad=-0.2"))
-        ax.annotate(str(round(s_best2[0],5)), xy=(80, func_powerlaw(80, *s_best2)), xycoords='data',
-                     xytext=(-80.0, -30.0), textcoords="offset points", color="indianred", size=13,  # xytext=(-30.0, -50.0)
-                     arrowprops=dict(arrowstyle="->", ls="--", color="indianred", connectionstyle="arc3,rad=-0.2"))
-        ax.annotate(str(round(s_best3[0],5)), xy=(100, func_powerlaw(100, *s_best3)), xycoords='data',
-                     xytext=(-10.0, -50.0), textcoords="offset points", color="olivedrab", size=13,  # xytext=(-80.0, -50.0)
-                     arrowprops=dict(arrowstyle="->", ls="--", color="olivedrab", connectionstyle="arc3,rad=-0.2"))"""
-        print(s_best1, s_best2, s_best3)
+        zipf_colors = ['limegreen', 'skyblue', 'dodgerblue', 'royalblue', 'salmon']
+        annotate_xy = [10, 30, 100, 500, 1000]
+        annotate_xytext = [(-10.0, 30.0), (-50.0, -30.0), (-10.0, -50.0), (20.0, 30.0), (30.0, 10.0)]
+        s_best = []
+        for i in [0,1,2,3,4]:
+            s_best.append(zipf_fitting(y_list[i]))
+        print([zipf[0] for zipf in s_best])
+        
+        for i in [1,2,4,0]: #[1,2,3,4,0]:
+            ax.plot(x_list[i], func_powerlaw(x_list[i], *s_best[i]), color=zipf_colors[i], lw=2, label="curve_fitting: "+labels[i])
+            ax.annotate(str(round(s_best[i][0],5)), xy=(annotate_xy[i], func_powerlaw(annotate_xy[i], *s_best[i])), xycoords='data',
+                     xytext=annotate_xytext[i], textcoords="offset points", color=zipf_colors[i], size=13,
+                     arrowprops=dict(arrowstyle="->", ls="--", color=zipf_colors[i], connectionstyle="arc3,rad=-0.2"))
 
         # legend
         ax.legend(loc='lower left', ncol=1, fontsize=15, markerscale=3)
@@ -127,12 +149,12 @@ def popularity_graph(df, title, filname, xlim : list = None, ylim : list = None,
             plt.setp(ax, ylim=ylim)
 
         # read/write graph
-        ax[0].scatter(x1, y1, color='blue', label='read', s=3)
-        ax[0].scatter(x2, y2, color='red', label='write', s=3)
+        ax[0].scatter(x3, y3, color='darkblue', label='read', s=3)
+        ax[0].scatter(x4, y4, color='red', label='write', s=3)
         ax[0].legend(loc='lower left', ncol=1, fontsize=20, markerscale=3)
 
         # read+write graph
-        ax[1].scatter(x3, y3, color='green', label='read&write', s=3)
+        ax[1].scatter(x, y, color='green', label='read&write', s=3)
         ax[1].legend(loc='lower left', ncol=1, fontsize=20, markerscale=3)
 
     #plt.show()
@@ -145,27 +167,35 @@ def pareto_graph(df, title, filname):
 
     ax.grid(True, color='black', alpha=0.5, linestyle='--')
 
+    #readi
+    y1 = df['type_pcnt'][(df['type']=='readi')].sort_values(ascending=False).cumsum()
+    x1 = np.arange(len(y1)) / len(y1)
+    #readd
+    y2 = df['type_pcnt'][(df['type']=='readd')].sort_values(ascending=False).cumsum()
+    x2 = np.arange(len(y2)) / len(y2)
     #read
-    y1 = df['type_pcnt'][(df['type']=='read')].sort_values(ascending=False).cumsum()
-    x1 = np.arange(len(y1))
-    x1 = (x1 / len(y1))
+    y3 = df['type_pcnt'][(df['type']=='read')].sort_values(ascending=False).cumsum()
+    x3 = np.arange(len(y3)) / len(y3)
     #write
-    y2 = df['type_pcnt'][(df['type']=='write')].sort_values(ascending=False).cumsum()
-    x2 = np.arange(len(y2))
-    x2 = (x2 / len(y2))
+    y4 = df['type_pcnt'][(df['type']=='write')].sort_values(ascending=False).cumsum()
+    x4 = np.arange(len(y4)) / len(y4)
     #read&write
-    y3 = df['type_pcnt'][(df['type']=='read&write')].sort_values(ascending=False).cumsum()
-    x3 = np.arange(len(y3))
-    x3 = (x3 / len(y3))
+    y = df['type_pcnt'][(df['type']=='read&write')].sort_values(ascending=False).cumsum()
+    x = np.arange(len(y)) / len(y)
 
-    y1_top20 = int(len(y1)*0.2);    y2_top20 = int(len(y2)*0.2);    y3_top20 = int(len(y3)*0.2)
-    y1_list = y1.values.tolist();   y2_list = y2.values.tolist();   y3_list = y3.values.tolist()
-    print(y1_list[y1_top20], y2_list[y2_top20], y3_list[y3_top20])
+    x_list = [x, x1, x2, x3, x4]
+    y_list = [y, y1, y2, y3, y4]
+    colors = ['green', 'cornflowerblue', 'blue', 'darkblue', 'red']
+    labels = ['read&write', 'readi', 'readd', 'read', 'write']
+
+    top20s = []
+    for ys in y_list:
+        top20s.append(ys.values.tolist()[int(len(ys)*0.2)])
+    print(top20s)
 
     #scatter
-    ax.scatter(x1, y1, color='blue', label='read', s=3)
-    ax.scatter(x2, y2, color='red', label='write', s=3)
-    ax.scatter(x3, y3, color='green', label='read&write', s=3)
+    for i in [1,2,4,0]: #[1,2,3,4,0]:
+        ax.scatter(x_list[i], y_list[i], color=colors[i], label=labels[i], s=3)
 
     # legend
     ax.legend(loc='lower right', ncol=1, fontsize=20, markerscale=3)
