@@ -4,8 +4,8 @@ import argparse
 import matplotlib.pyplot as plt
 import pandas as pd
 from multiprocessing import Process
+
 from load_and_save import save_json, load_json
-from plot_graph import plot_frame
 from simulation import overall_rank_simulation, separately_rank_simulation
 
 
@@ -244,29 +244,6 @@ def lfu_simulation_by_type(startpoint, endpoint, input_filename, output_filename
         filename = output_filename + "-by-type_checkpoint" + str(i) + ".json"
         save_json(savings, filename)
 
-"""##**memdf5 graph**"""
-def lfu_graph(read_cnt, write_cnt, title, filename):
-    fig, ax = plot_frame(2, 1, title=title, xlabel='rank(temporal frequency)', ylabel='reference count', log_scale=True)
-
-    #read
-    x1 = range(1,len(read_cnt)+1)
-    y1 = read_cnt
-
-    #write
-    x2 = range(1,len(write_cnt)+1)
-    y2 = write_cnt
-
-    # read graph
-    ax[0].scatter(x1, y1, color='blue', label='read', s=3)
-    ax[0].legend(loc='lower left', ncol=1, fontsize=20, markerscale=3)
-
-    # write graph
-    ax[1].scatter(x2, y2, color='red', label='write', s=3)
-    ax[1].legend(loc='lower left', ncol=1, fontsize=20, markerscale=3)
-
-    #plt.show()
-    plt.savefig(filename+'.png', dpi=300)
-
 #-----
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="plot lfu graph from log file")
@@ -290,13 +267,3 @@ if __name__ == "__main__":
 
     p1.join()
     p2.join()
-
-    saving_list = ['block_rank', 'read_cnt', 'write_cnt']
-    filename = args.output + "_checkpoint" + str(args.end_chunk) + ".json"
-    _, read_cnt, write_cnt = load_json(saving_list, filename)
-    lfu_graph(read_cnt, write_cnt, title=args.title, filename=args.output+"_overall-rank")
-
-    filename = args.output + "-by-type_checkpoint" + str(args.end_chunk) + ".json"
-    saving_list = ['read_block_rank', 'read_cnt', 'write_block_rank', 'write_cnt']
-    _, read_cnt, _, write_cnt = load_json(saving_list, filename)
-    lfu_graph(read_cnt, write_cnt, title=args.title, filename=args.output+"_rank-by-type")
