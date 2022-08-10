@@ -1,205 +1,237 @@
 # -*- coding: utf-8 -*-
 
 import argparse
-parser = argparse.ArgumentParser(description="plot popularity graph")
-parser.add_argument("--input", "-i", metavar='I', type=str, nargs='?', default='input.txt',
-                    help='input file')
-parser.add_argument("--output", "-o", metavar='O', type=str, nargs='?', default='output.txt',
-                    help='output file')
-parser.add_argument("--zipf", "-z", action='store_true',
-                    help='calculate zipf parameter')
-parser.add_argument("--title", "-t", metavar='T', type=str, nargs='?', default='',
-                    help='title of a graph')
-args = parser.parse_args()
-
-
 import matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator
 import pandas as pd
 import numpy as np
 from load_and_save import save_csv
+from plot_graph import plot_frame
 
-"""##**memdf2 = tendency of memory block access**"""
-memdf2 = pd.read_csv(args.input+'.csv', sep=',', header=0, index_col=0, on_bad_lines='skip')
 
 """memdf2.1
 * x axis : ranking by references count
 * y axis : reference count
 """
-# ranking
-read_rank = memdf2['count'][(memdf2['type']=='read')].rank(ascending=False)
-memdf2.loc[(memdf2['type']=='read'), ['type_rank']] = read_rank
+def ref_count_rank(df):
+    # ranking
+    readi_rank = df['count'][(df['type']=='readi')].rank(ascending=False)
+    df.loc[(df['type']=='readi'), ['type_rank']] = readi_rank
 
-write_rank = memdf2['count'][(memdf2['type']=='write')].rank(ascending=False)
-memdf2.loc[(memdf2['type']=='write'), ['type_rank']] = write_rank
+    readd_rank = df['count'][(df['type']=='readd')].rank(ascending=False)
+    df.loc[(df['type']=='readd'), ['type_rank']] = readd_rank
 
-rw_rank = memdf2['count'][(memdf2['type']=='read&write')].rank(ascending=False)
-memdf2.loc[(memdf2['type']=='read&write'), ['type_rank']] = rw_rank
+    read_rank = df['count'][(df['type']=='read')].rank(ascending=False)
+    df.loc[(df['type']=='read'), ['type_rank']] = read_rank
+
+    write_rank = df['count'][(df['type']=='write')].rank(ascending=False)
+    df.loc[(df['type']=='write'), ['type_rank']] = write_rank
+
+    rw_rank = df['count'][(df['type']=='read&write')].rank(ascending=False)
+    df.loc[(df['type']=='read&write'), ['type_rank']] = rw_rank
+
+    return df
 
 """memdf2.2
 * x axis : ranking by % of reference count (in percentile form)
 * y axis : % of reference count
 """
-total_read = memdf2['count'][(memdf2['type']=='read')].sum()
-total_write = memdf2['count'][(memdf2['type']=='write')].sum()
-total_rw = memdf2['count'][(memdf2['type']=='read&write')].sum()
+def ref_count_percentile_rank(df):
+    total_readi = df['count'][(df['type']=='readi')].sum()
+    total_readd = df['count'][(df['type']=='readd')].sum()
+    total_read = df['count'][(df['type']=='read')].sum()
+    total_write = df['count'][(df['type']=='write')].sum()
+    total_rw = df['count'][(df['type']=='read&write')].sum()
 
-# percentage
-memdf2['type_pcnt'] = memdf2['count']
-memdf2.loc[(memdf2['type']=='read'), ['type_pcnt']] /= total_read
-memdf2.loc[(memdf2['type']=='write'), ['type_pcnt']] /= total_write
-memdf2.loc[(memdf2['type']=='read&write'), ['type_pcnt']] /= total_rw
+    # percentage
+    df['type_pcnt'] = df['count']
+    df.loc[(df['type']=='readi'), ['type_pcnt']] /= total_readi
+    df.loc[(df['type']=='readd'), ['type_pcnt']] /= total_readd
+    df.loc[(df['type']=='read'), ['type_pcnt']] /= total_read
+    df.loc[(df['type']=='write'), ['type_pcnt']] /= total_write
+    df.loc[(df['type']=='read&write'), ['type_pcnt']] /= total_rw
 
-# ranking in percentile form
-read_rank = memdf2['type_pcnt'][(memdf2['type']=='read')].rank(ascending=False, pct=True)
-memdf2.loc[(memdf2['type']=='read'), ['type_pcnt_rank']] = read_rank
+    # ranking in percentile form
+    readi_rank = df['type_pcnt'][(df['type']=='readi')].rank(ascending=False, pct=True)
+    df.loc[(df['type']=='readi'), ['type_pcnt_rank']] = readi_rank
 
-write_rank = memdf2['type_pcnt'][(memdf2['type']=='write')].rank(ascending=False, pct=True)
-memdf2.loc[(memdf2['type']=='write'), ['type_pcnt_rank']] = write_rank
+    readd_rank = df['type_pcnt'][(df['type']=='readd')].rank(ascending=False, pct=True)
+    df.loc[(df['type']=='readd'), ['type_pcnt_rank']] = readd_rank
 
-rw_rank = memdf2['type_pcnt'][(memdf2['type']=='read&write')].rank(ascending=False, pct=True)
-memdf2.loc[(memdf2['type']=='read&write'), ['type_pcnt_rank']] = rw_rank
+    read_rank = df['type_pcnt'][(df['type']=='read')].rank(ascending=False, pct=True)
+    df.loc[(df['type']=='read'), ['type_pcnt_rank']] = read_rank
 
-save_csv(memdf2, args.output+'.csv', 0)
+    write_rank = df['type_pcnt'][(df['type']=='write')].rank(ascending=False, pct=True)
+    df.loc[(df['type']=='write'), ['type_pcnt_rank']] = write_rank
+
+    rw_rank = df['type_pcnt'][(df['type']=='read&write')].rank(ascending=False, pct=True)
+    df.loc[(df['type']=='read&write'), ['type_pcnt_rank']] = rw_rank
+
+    return df
 
 """zipf"""
+def func_powerlaw(x, m, c):
+    return x ** m * c
 
-if args.zipf:
-    def func_powerlaw(x, m, c):
-        return x ** m * c
+def zipf_fitting(freqs):
+    from scipy.optimize import curve_fit
 
-    def zipf_param(freqs):
-        from scipy.optimize import curve_fit
+    target_func = func_powerlaw
 
-        target_func = func_powerlaw
+    freqs = freqs[freqs != 0]
+    y = freqs.sort_values(ascending=False).to_numpy()
+    x = np.array(range(1, len(y) + 1))
 
-        freqs = freqs[freqs != 0]
-        y = freqs.sort_values(ascending=False).to_numpy()
-        x = np.array(range(1, len(y) + 1))
+    popt, pcov = curve_fit(target_func, x, y, maxfev=2000)
+    #print(popt)
 
-        popt, pcov = curve_fit(target_func, x, y, maxfev=2000)
-        #print(popt)
-
-        return popt
+    return popt
 
 """memdf2.1 graph"""
+def popularity_graph(df, title, filname, xlim : list = None, ylim : list = None, zipf=False):
+    #readi
+    x1 = df['type_rank'][(df['type']=='readi')]
+    y1 = df['count'][(df['type']=='readi')]
+    #readd
+    x2 = df['type_rank'][(df['type']=='readd')]
+    y2 = df['count'][(df['type']=='readd')]
+    #read
+    x3 = df['type_rank'][(df['type']=='read')]
+    y3 = df['count'][(df['type']=='read')]
+    #write
+    x4 = df['type_rank'][(df['type']=='write')]
+    y4 = df['count'][(df['type']=='write')]
+    #read&write
+    x = df['type_rank'][(df['type']=='read&write')]
+    y = df['count'][(df['type']=='read&write')]
 
-#memdf2 = pd.read_csv(args.output+'.csv', sep=',', header=0, index_col=0, on_bad_lines='skip')
+    if zipf:
+        fig, ax = plot_frame((1, 1), title=title, xlabel='ranking', ylabel='memory block access count', log_scale=True)
 
-#read
-x1 = memdf2['type_rank'][(memdf2['type']=='read')]
-y1 = memdf2['count'][(memdf2['type']=='read')]
-#write
-x2 = memdf2['type_rank'][(memdf2['type']=='write')]
-y2 = memdf2['count'][(memdf2['type']=='write')]
-#read&write
-x3 = memdf2['type_rank'][(memdf2['type']=='read&write')]
-y3 = memdf2['count'][(memdf2['type']=='read&write')]
+        if xlim:
+            plt.setp(ax, xlim=xlim)
+        if ylim:
+            plt.setp(ax, ylim=ylim)
 
-if args.zipf:
-    plt.figure(figsize=(12,10))
-    plt.rcParams.update({'font.size': 17})
+        x_list = [x, x1, x2, x3, x4]
+        y_list = [y, y1, y2, y3, y4]
+        colors = ['green', 'cornflowerblue', 'blue', 'darkblue', 'red']
+        labels = ['read&write', 'readi', 'readd', 'read', 'write']
 
-    if args.title != '':
-        plt.title(args.title, fontsize=25)
-    plt.ylim([0.5, 1e5])
-    plt.xscale('log')
-    plt.yscale('log')
+        #scatter
+        for i in [1,2,4,0]: #[1,2,3,4,0]:
+            ax.scatter(x_list[i], y_list[i], color=colors[i], label=labels[i], s=3)
 
-    #scatter
-    plt.scatter(x1, y1, color='blue', label='read', s=7)
-    plt.scatter(x2, y2, color='red', label='write', s=7)
-    plt.scatter(x3, y3, color='green', label='read&write', s=7)
+        #curve fitting
+        zipf_colors = ['limegreen', 'skyblue', 'dodgerblue', 'royalblue', 'salmon']
+        annotate_xy = [10, 30, 100, 500, 1000]
+        annotate_xytext = [(-10.0, 30.0), (-50.0, -30.0), (-10.0, -50.0), (20.0, 30.0), (30.0, 10.0)]
+        s_best = []
+        for i in [0,1,2,3,4]:
+            s_best.append(zipf_fitting(y_list[i]))
+        print([zipf[0] for zipf in s_best])
+        
+        for i in [1,2,4,0]: #[1,2,3,4,0]:
+            ax.plot(x_list[i], func_powerlaw(x_list[i], *s_best[i]), color=zipf_colors[i], lw=2, label="curve_fitting: "+labels[i])
+            ax.annotate(str(round(s_best[i][0],5)), xy=(annotate_xy[i], func_powerlaw(annotate_xy[i], *s_best[i])), xycoords='data',
+                     xytext=annotate_xytext[i], textcoords="offset points", color=zipf_colors[i], size=13,
+                     arrowprops=dict(arrowstyle="->", ls="--", color=zipf_colors[i], connectionstyle="arc3,rad=-0.2"))
 
-    #curve fitting
-    s_best1 = zipf_param(y1)
-    s_best2 = zipf_param(y2)
-    s_best3 = zipf_param(y3)
-    plt.plot(x1, func_powerlaw(x1, *s_best1), color="skyblue", lw=2, label="curve_fitting: read")
-    plt.plot(x2, func_powerlaw(x2, *s_best2), color="salmon", lw=2, label="curve_fitting: write")
-    plt.plot(x3, func_powerlaw(x3, *s_best3), color="limegreen", lw=2, label="curve_fitting: read&write")
-  
-    plt.annotate(str(round(s_best1[0],5)), xy=(10, func_powerlaw(10, *s_best1)), xycoords='data',
-                 xytext=(-10.0, -70.0), textcoords="offset points", color="steelblue", size=13,
-                 arrowprops=dict(arrowstyle="->", ls="--", color="steelblue", connectionstyle="arc3,rad=-0.2"))
-    plt.annotate(str(round(s_best2[0],5)), xy=(80, func_powerlaw(80, *s_best2)), xycoords='data',
-                 xytext=(-80.0, -30.0), textcoords="offset points", color="indianred", size=13,  # xytext=(-30.0, -50.0)
-                 arrowprops=dict(arrowstyle="->", ls="--", color="indianred", connectionstyle="arc3,rad=-0.2"))
-    plt.annotate(str(round(s_best3[0],5)), xy=(100, func_powerlaw(100, *s_best3)), xycoords='data',
-                 xytext=(-10.0, -50.0), textcoords="offset points", color="olivedrab", size=13,  # xytext=(-80.0, -50.0)
-                 arrowprops=dict(arrowstyle="->", ls="--", color="olivedrab", connectionstyle="arc3,rad=-0.2"))
-    print(s_best1, s_best2, s_best3)
+        # legend
+        ax.legend(loc='lower left', ncol=1, fontsize=15, markerscale=3)
 
-    # legend
-    plt.xlabel('ranking')
-    plt.ylabel('memory block access count')
-    plt.legend(loc='lower left', ncol=1)
+    else:
+        fig, ax = plot_frame((2, 1), title=title, xlabel='ranking', ylabel='memory block access count', log_scale=True)
 
-    # plt.show()
-    plt.savefig(args.output+'.png', dpi=300)
+        if xlim:
+            plt.setp(ax, xlim=xlim)
+        if ylim:
+            plt.setp(ax, ylim=ylim)
 
-else:
-    fig, ax = plt.subplots(2, figsize=(7,8), constrained_layout=True, sharex=True, sharey=True) # sharex=True: share x axis
-    # figsize=(11,10),
+        # read/write graph
+        ax[0].scatter(x3, y3, color='darkblue', label='read', s=3)
+        ax[0].scatter(x4, y4, color='red', label='write', s=3)
+        ax[0].legend(loc='lower left', ncol=1, fontsize=20, markerscale=3)
 
-    font_size=20
-    parameters = {'axes.labelsize': font_size, 'axes.titlesize': font_size, 'xtick.labelsize': font_size, 'ytick.labelsize': font_size}
-    plt.rcParams.update(parameters)
-
-    if args.title != '':
-        plt.suptitle(args.title, fontsize=17)
-    plt.ylim([0.5,1e5])
-    plt.xscale('log')
-    plt.yscale('log')
-
-    # read/write graph
-    ax[0].scatter(x1, y1, color='blue', label='read', s=5)
-    ax[0].scatter(x2, y2, color='red', label='write', s=5)
-
-    # read+write graph
-    ax[1].scatter(x3, y3, color='green', label='read&write', s=5)
-
-    ax[0].legend(loc='lower left', ncol=1) #loc = 'best', 'upper right', (1.0,0.8)
-    ax[1].legend(loc='lower left', ncol=1) #loc = 'best', 'upper right', (1.0,0.8)
-
-    fig.supxlabel('rank', fontsize=17)
-    fig.supylabel('memory block reference count', fontsize=17)
+        # read+write graph
+        ax[1].scatter(x, y, color='green', label='read&write', s=3)
+        ax[1].legend(loc='lower left', ncol=1, fontsize=20, markerscale=3)
 
     #plt.show()
-    plt.savefig(args.output+'.png', dpi=300)
+    plt.savefig(filname+'.png', dpi=300)
 
 
 """memdf2.2 graph"""
-plt.cla()
+def pareto_graph(df, title, filname):
+    fig, ax = plot_frame((1, 1), title=title, xlabel='rank (in % form)', ylabel='% of reference count')
 
-plt.figure(figsize=(8,7))
-plt.rcParams.update({'font.size': 17})
-if args.title != '':
-    plt.title(args.title, fontsize=17)
-plt.grid(True, color='black', alpha=0.5, linestyle='--')
+    ax.grid(True, color='black', alpha=0.5, linestyle='--')
 
-#read
-y1 = memdf2['type_pcnt'][(memdf2['type']=='read')].sort_values(ascending=False).cumsum()
-x1 = np.arange(len(y1))
-x1 = (x1 / len(y1))
-#write
-y2 = memdf2['type_pcnt'][(memdf2['type']=='write')].sort_values(ascending=False).cumsum()
-x2 = np.arange(len(y2))
-x2 = (x2 / len(y2))
-#read&write
-y3 = memdf2['type_pcnt'][(memdf2['type']=='read&write')].sort_values(ascending=False).cumsum()
-x3 = np.arange(len(y3))
-x3 = (x3 / len(y3))
+    #readi
+    y1 = df['type_pcnt'][(df['type']=='readi')].sort_values(ascending=False).cumsum()
+    x1 = np.arange(len(y1)) / len(y1)
+    #readd
+    y2 = df['type_pcnt'][(df['type']=='readd')].sort_values(ascending=False).cumsum()
+    x2 = np.arange(len(y2)) / len(y2)
+    #read
+    y3 = df['type_pcnt'][(df['type']=='read')].sort_values(ascending=False).cumsum()
+    x3 = np.arange(len(y3)) / len(y3)
+    #write
+    y4 = df['type_pcnt'][(df['type']=='write')].sort_values(ascending=False).cumsum()
+    x4 = np.arange(len(y4)) / len(y4)
+    #read&write
+    y = df['type_pcnt'][(df['type']=='read&write')].sort_values(ascending=False).cumsum()
+    x = np.arange(len(y)) / len(y)
 
-#scatter
-plt.scatter(x1, y1, color='blue', label='read', s=5)
-plt.scatter(x2, y2, color='red', label='write', s=5)
-plt.scatter(x3, y3, color='green', label='read&write', s=5)
+    x_list = [x, x1, x2, x3, x4]
+    y_list = [y, y1, y2, y3, y4]
+    colors = ['green', 'cornflowerblue', 'blue', 'darkblue', 'red']
+    labels = ['read&write', 'readi', 'readd', 'read', 'write']
 
-# legend
-plt.xlabel('rank (in % form)')
-plt.ylabel('% of reference count')
-plt.legend(loc='lower right', ncol=1)
+    top20s = []
+    for ys in y_list:
+        top20s.append(ys.values.tolist()[int(len(ys)*0.2)])
+    print(top20s)
 
-#plt.show()
-plt.savefig(args.output+'_pareto.png', dpi=300)
+    #scatter
+    for i in [1,2,4,0]: #[1,2,3,4,0]:
+        ax.scatter(x_list[i], y_list[i], color=colors[i], label=labels[i], s=3)
 
+    # legend
+    ax.legend(loc='lower right', ncol=1, fontsize=20, markerscale=3)
+    
+    ax.xaxis.set_major_locator(MaxNLocator(6)) 
+    ax.yaxis.set_major_locator(MaxNLocator(6))
+
+    #plt.show()
+    plt.savefig(filname+'_pareto.png', dpi=300)
+
+#-----
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="plot popularity graph")
+    parser.add_argument("--input", "-i", metavar='I', type=str, nargs='?', default='input.txt',
+                        help='input file')
+    parser.add_argument("--output", "-o", metavar='O', type=str, nargs='?', default='output.txt',
+                        help='output file')
+    parser.add_argument("--zipf", "-z", action='store_true',
+                        help='calculate zipf parameter')
+    parser.add_argument("--plot_pareto", "-p", action='store_true',
+                        help='plot pareto graph')
+    parser.add_argument("--title", "-t", metavar='T', type=str, nargs='?', default='',
+                        help='title of a graph')
+    args = parser.parse_args()
+
+    """##**memdf2 = tendency of memory block access**"""
+    memdf2 = pd.read_csv(args.input+'.csv', sep=',', header=0, index_col=0, on_bad_lines='skip')
+
+    memdf2 = ref_count_rank(memdf2)
+    memdf2 = ref_count_percentile_rank(memdf2)
+
+    memdf2 = memdf2[['blockaddress', 'count', 'type', 'type_rank', 'type_pcnt', 'type_pcnt_rank']]
+    save_csv(memdf2, args.output+'.csv', 0)
+
+    popularity_graph(memdf2, title=args.title, filname=args.output, zipf=args.zipf)
+    
+    if (args.plot_pareto):
+        plt.cla()
+        pareto_graph(memdf2, title=args.title, filname=args.output)
