@@ -66,31 +66,6 @@ def dense_ref_cnt_graph(df, title, output_filename):
     #sns.kdeplot(rw['dense_blockaddress'], weights=rw['count'], legend='read&write', color='green', bw_adjust=.01, shade=True)
     plt.savefig(output_filename+'-2-1.png', dpi=300)
 
-    #---
-    x1 = read['dense_blockaddress']
-    y1 = read['count']
-
-    x2 = write['dense_blockaddress']
-    y2 = write['count']
-
-    fig, ax = plt.subplots(2, figsize=(10,8), sharex=True)
-    plt.suptitle(title, fontsize = font_size + 10)
-
-    ax[0].bar(x1, y1, color='blue', edgecolor='blue', label='read')
-    ax[1].bar(x2, y2, color='red', edgecolor='red', label='write')
-
-    if y1.max() > y2.max():
-        y_range = ax[0].get_ylim()
-        ax[1].set_ylim(y_range)
-    else:
-        y_range = ax[1].get_ylim()
-        ax[0].set_ylim(y_range)
-
-    ax[1].invert_yaxis()
-
-    fig.tight_layout()
-    fig.subplots_adjust(hspace=0.0) # wspace=0.0
-    plt.savefig(output_filename+'-2-2.png', dpi=300)
 
 if __name__ == "__main__" :
     parser = argparse.ArgumentParser()

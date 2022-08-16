@@ -115,7 +115,7 @@ def popularity_graph(df, title, filname, xlim : list = None, ylim : list = None,
 
         x_list = [x, x1, x2, x3, x4]
         y_list = [y, y1, y2, y3, y4]
-        colors = ['green', 'cornflowerblue', 'blue', 'darkblue', 'red']
+        colors = ['green', 'c', 'dodgerblue', 'blue', 'red']
         labels = ['read&write', 'readi', 'readd', 'read', 'write']
 
         #scatter
@@ -123,19 +123,20 @@ def popularity_graph(df, title, filname, xlim : list = None, ylim : list = None,
             ax.scatter(x_list[i], y_list[i], color=colors[i], label=labels[i], s=3)
 
         #curve fitting
-        zipf_colors = ['limegreen', 'skyblue', 'dodgerblue', 'royalblue', 'salmon']
+        zipf_colors = ['limegreen', 'skyblue', 'royalblue', 'darkblue', 'salmon']
         annotate_xy = [10, 30, 100, 500, 1000]
         annotate_xytext = [(-10.0, 30.0), (-50.0, -30.0), (-10.0, -50.0), (20.0, 30.0), (30.0, 10.0)]
         s_best = []
         for i in [0,1,2,3,4]:
             s_best.append(zipf_fitting(y_list[i]))
+        print("========zipf", labels, "========")
         print([zipf[0] for zipf in s_best])
         
         for i in [1,2,4,0]: #[1,2,3,4,0]:
             ax.plot(x_list[i], func_powerlaw(x_list[i], *s_best[i]), color=zipf_colors[i], lw=2, label="curve_fitting: "+labels[i])
-            ax.annotate(str(round(s_best[i][0],5)), xy=(annotate_xy[i], func_powerlaw(annotate_xy[i], *s_best[i])), xycoords='data',
-                     xytext=annotate_xytext[i], textcoords="offset points", color=zipf_colors[i], size=13,
-                     arrowprops=dict(arrowstyle="->", ls="--", color=zipf_colors[i], connectionstyle="arc3,rad=-0.2"))
+            #ax.annotate(str(round(s_best[i][0],5)), xy=(annotate_xy[i], func_powerlaw(annotate_xy[i], *s_best[i])), xycoords='data',
+            #         xytext=annotate_xytext[i], textcoords="offset points", color=zipf_colors[i], size=13,
+            #         arrowprops=dict(arrowstyle="->", ls="--", color=zipf_colors[i], connectionstyle="arc3,rad=-0.2"))
 
         # legend
         ax.legend(loc='lower left', ncol=1, fontsize=15, markerscale=3)
@@ -149,7 +150,7 @@ def popularity_graph(df, title, filname, xlim : list = None, ylim : list = None,
             plt.setp(ax, ylim=ylim)
 
         # read/write graph
-        ax[0].scatter(x3, y3, color='darkblue', label='read', s=3)
+        ax[0].scatter(x3, y3, color='blue', label='read', s=3)
         ax[0].scatter(x4, y4, color='red', label='write', s=3)
         ax[0].legend(loc='lower left', ncol=1, fontsize=20, markerscale=3)
 
@@ -185,12 +186,13 @@ def pareto_graph(df, title, filname):
 
     x_list = [x, x1, x2, x3, x4]
     y_list = [y, y1, y2, y3, y4]
-    colors = ['green', 'cornflowerblue', 'blue', 'darkblue', 'red']
+    colors = ['green', 'c', 'dodgerblue', 'blue', 'red']
     labels = ['read&write', 'readi', 'readd', 'read', 'write']
 
     top20s = []
     for ys in y_list:
         top20s.append(ys.values.tolist()[int(len(ys)*0.2)])
+    print("========top20%", labels, "========")
     print(top20s)
 
     #scatter

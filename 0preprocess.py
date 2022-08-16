@@ -45,7 +45,7 @@ if __name__ == "__main__":
     parser.add_argument("--output", "-o", metavar='O', type=str, nargs='?', default='output.txt',
                         help='output file')
     parser.add_argument("--chunksize", "-c", metavar='C', type=int, nargs='?', default=1000000,
-                        help='size of each chunk groups')
+                        help='the number of rows in each chunk groups')
     args = parser.parse_args()
 
     chunk = read_logfile_chunk(filename=args.input, chunksize=args.chunksize)

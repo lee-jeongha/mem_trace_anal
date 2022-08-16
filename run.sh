@@ -66,13 +66,13 @@ echo =====making \'$OUTPUT_DIR\' is done!=====
 
 # preprocess
 type0="$OUTPUT_DIR/memdf0/memdf0"
-python3 $CODE_PATH/0preprocess.py -i $INPUT_FILE -o $type0
+python3 $CODE_PATH/0preprocess.py -i $INPUT_FILE -o $type0 -c 1000000
 echo =====0preprocess.py is done!=====
 
 # reference count per block
 type1="$OUTPUT_DIR/memdf1/memdf1"
 #python3 $CODE_PATH/1refcountperblock.py -i ${type0::(-4)} -o $type1 -d -t $TITLE
-python3 $CODE_PATH/1refcountperblock.py -i ${type0::$((${#type0}-4))} -o $type1 -d -l -t $TITLE
+python3 $CODE_PATH/1refcountperblock.py -i $type0 -o $type1 -d -r -t $TITLE
 echo =====1refcountperblock.py is done!=====
 
 # popularity
@@ -82,7 +82,7 @@ echo =====2popularity.py is done!=====
 
 # memory access per logical time
 type3="$OUTPUT_DIR/memdf3/memdf3"
-python3 $CODE_PATH/3memaccess.py -i $type0 -o $type3
+python3 $CODE_PATH/3memaccess.py -i $type0 -o $type3 -b 'access_time'
 gnuplot << EOF
   set datafile separator ','
   set title "memory access"
@@ -99,13 +99,13 @@ echo =====3memaccess.py is done!=====
 # lru
 type4="$OUTPUT_DIR/memdf4/memdf4"
 chunk_dir="$OUTPUT_DIR/memdf0"
-chunk_nu=$(expr `ls -l $chunk_dir | grep ^- 2>/dev/null | wc -l` - 1)
-python3 $CODE_PATH/4lru.py -i ${type0::(-4)} -o $type4 -s 0 -e $chunk_nu -t $TITLE
+chunk_num=$(expr `ls -l $chunk_dir | grep ^- 2>/dev/null | wc -l`)
+python3 $CODE_PATH/4lru.py -i $type0 -o $type4 -s 0 -e $chunk_num -t $TITLE
 echo =====4lru.py is done!=====
 
 # lfu
 type5="$OUTPUT_DIR/memdf5/memdf5"
 chunk_dir="$OUTPUT_DIR/memdf0"
-chunk_nu=$(expr `ls -l $chunk_dir | grep ^- 2>/dev/null | wc -l` - 1)
-python3 $CODE_PATH/5lfu.py -i ${type0::(-4)} -o $type5 -s 0 -e $chunk_nu -t $TITLE
+chunk_num=$(expr `ls -l $chunk_dir | grep ^- 2>/dev/null | wc -l`)
+python3 $CODE_PATH/5lfu.py -i $type0 -o $type5 -s 0 -e $chunk_num -t $TITLE
 echo =====5lfu.py is done!=====

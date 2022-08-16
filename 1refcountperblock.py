@@ -27,7 +27,7 @@ def ref_cnt(inputdf, concat=False):
 
         return df
 
-def ref_cnt_per_block(input_filename, chunks=100):
+def ref_cnt_per_block(input_filename):
     ## 1. use list of chunk
     """
     memdf = pd.read_csv(input_filename+'.csv', sep=',', chunksize=1000000, header=0, index_col=0, error_bad_lines=False)
@@ -43,7 +43,8 @@ def ref_cnt_per_block(input_filename, chunks=100):
     ## 2. load separate .csv file
     memdf = pd.DataFrame()
 
-    for i in range(chunks): 
+    i = 0
+    while True: 
         filename = input_filename+'_'+str(i)+'.csv'
 
         try:
@@ -53,6 +54,7 @@ def ref_cnt_per_block(input_filename, chunks=100):
         except FileNotFoundError:
             print("No file named: ", filename)
             break
+        i += 1
 
     memdf = ref_cnt(memdf, concat=True)
 
@@ -60,13 +62,15 @@ def ref_cnt_per_block(input_filename, chunks=100):
     memdf_read = memdf[(memdf.type == 'readi') | (memdf.type == 'readd')]
     memdf_read = memdf_read.groupby(by=['blockaddress'], as_index=False).sum()
     memdf_read['type'] = 'read'
-    memdf = pd.concat([memdf, memdf_read], sort=True)
 
     # both read and write
     memdf_rw = memdf.groupby(by=['blockaddress'], as_index=False).sum()
     memdf_rw['type'] = 'read&write'
+
+    memdf = pd.concat([memdf, memdf_read], sort=True)
     memdf = pd.concat([memdf, memdf_rw], sort=True)
 
+    #instruction count
     type_cnt = memdf.groupby(by=['type'], as_index=False).sum()
     memdf['readi'] = pd.Series(type_cnt['count'].values[type_cnt['type']=='readi'])
     memdf['readd'] = pd.Series(type_cnt['count'].values[type_cnt['type']=='readd'])
@@ -94,7 +98,7 @@ def instruction_cnt_graph(title, filename, readi_cnt, readd_cnt, write_cnt):
     x = range(3)
     labels = ['readi', 'readd', 'write']
     values = [readi_cnt, readd_cnt, write_cnt]
-    colors = ['cornflowerblue', 'blue', 'red']
+    colors = ['c', 'dodgerblue', 'red']
     handles = [plt.Rectangle((0,0),1,1, color=colors[i]) for i in range(3)]
 
     cnt_sum = readi_cnt + readd_cnt + write_cnt
@@ -113,7 +117,10 @@ def instruction_cnt_graph(title, filename, readi_cnt, readd_cnt, write_cnt):
     plt.savefig(filename+'_instruction.png', dpi=300)
 
 """memdf1.1 graph"""
-def ref_cnt_graph(df, title, filename, ylim : list = None):
+def ref_cnt_graph(df, title, filename, dense = False, ylim : list = None):
+    if dense:
+        df['blockaddress'] = df['blockaddress'].rank(ascending=True, method='dense')
+
     x1 = df['blockaddress'][(df['type']=='readi')]
     x2 = df['blockaddress'][(df['type']=='readd')]
     x3 = df['blockaddress'][(df['type']=='write')]
@@ -129,11 +136,10 @@ def ref_cnt_graph(df, title, filename, ylim : list = None):
     print("memory footprint by readd(4KB):", len(x2))
     print("memory footprint by writes(4KB):", len(x3))
 
-    fig, ax = plot_frame((3, 1), (7, 4), title=title, xlabel='(virtual) memory block address', ylabel='memory block reference count')
-    x_list = [x1, x2, x3]
-    y_list = [y1, y2, y3]
-    color = ['cornflowerblue', 'blue', 'red', 'green']
-    label = ['readi', 'readd', 'write', 'read&write']
+    if dense:
+        fig, ax = plot_frame((2, 1), (7, 4), title=title, xlabel='(virtual) memory block address', ylabel='memory block reference count', share_yaxis=False)
+    else:
+        fig, ax = plot_frame((3, 1), (7, 4), title=title, xlabel='(virtual) memory block address', ylabel='memory block reference count')
 
     if ylim:
         plt.setp(ax, ylim=ylim)
@@ -142,9 +148,35 @@ def ref_cnt_graph(df, title, filename, ylim : list = None):
     #print("readd count[min,max]:", y2.min(), y2.max(), digit_length(y2.max()))
     #print("write count[min,max]:", y3.min(), y3.max(), digit_length(y3.max()))
 
-    for i in range(len(x_list)):
-        ax[i].scatter(x_list[i], y_list[i], color=color[i], label=label[i], s=3)
-        ax[i].legend(loc='upper right', ncol=1, fontsize=20, markerscale=3) #loc = (1.0,0.8)
+    if dense:
+        ax[0].bar(x1, y1, color='c', edgecolor='c', label='readi')
+        ax[0].bar(x2, y2, color='dodgerblue', edgecolor='dodgerblue', label='readd')
+        ax[0].legend(loc='upper right', ncol=1, fontsize=20)
+
+        ax[1].bar(x3, y3, color='red', edgecolor='red', label='write')
+        ax[1].legend(loc='lower right', ncol=1, fontsize=20)
+
+        ax0_yrange = ax[0].get_ylim()
+        ax1_yrange = ax[1].get_ylim()
+
+        if ax0_yrange[1] > ax1_yrange[1]:
+            ax[1].set_ylim(ax0_yrange)
+        else:
+            ax[0].set_ylim(ax1_yrange)
+        ax[1].invert_yaxis()
+
+        fig.tight_layout()
+        fig.subplots_adjust(hspace=0.0) # wspace=0.0
+
+    else:
+        x_list = [x1, x2, x3]
+        y_list = [y1, y2, y3]
+        color = ['c', 'dodgerblue', 'red', 'green']
+        label = ['readi', 'readd', 'write', 'read&write']
+        
+        for i in range(len(x_list)):
+            ax[i].scatter(x_list[i], y_list[i], color=color[i], label=label[i], s=3)
+            ax[i].legend(loc='upper right', ncol=1, fontsize=20, markerscale=3) #loc = (1.0,0.8)
 
     #plt.show()
     plt.savefig(filename+'.png', dpi=300)
@@ -184,7 +216,7 @@ def ref_cnt_distribute_graph(df, title, filename, log_xscale = True, cnt_ylim : 
     y = df['count'][(df['type']=='read&write')]
 
     y_list = [y1, y2, y3, y]
-    color = ['cornflowerblue', 'blue', 'red', 'green']
+    color = ['c', 'dodgerblue', 'red', 'green']
     label = ['readi', 'readd', 'write', 'read&write']
    
     if log_xscale:
@@ -193,7 +225,6 @@ def ref_cnt_distribute_graph(df, title, filename, log_xscale = True, cnt_ylim : 
         for i in range(len(y_list)):
             ref_cnt_df = ref_cnt_distribute(y_list[i], log_scale=True)
             edges, counts, multiply_counts, relative_counts = ref_cnt_df['edges'], ref_cnt_df['counts'], ref_cnt_df['multiply_counts'], ref_cnt_df['relative_counts']
-            ref_cnt_df.to_csv(filename+'_'+label[i]+'.csv')
 
             edges = ['$\mathregular{10^'+str(int(i))+'}$' if i >= 1 else str(1) for i in np.log10(edges)]
 
@@ -213,7 +244,7 @@ def ref_cnt_distribute_graph(df, title, filename, log_xscale = True, cnt_ylim : 
         for i in range(len(y_list)):
             ref_cnt_df = ref_cnt_distribute(y_list[i], log_scale=False)
             edges, counts, multiply_counts, relative_counts = ref_cnt_df['edges'], ref_cnt_df['counts'], ref_cnt_df['multiply_counts'], ref_cnt_df['relative_counts']
-            ref_cnt_df.to_csv(filename+'_'+label[i]+'.csv')
+            #ref_cnt_df.to_csv(filename+'_'+label[i]+'.csv')
 
             """histogram"""
             ax[i][0].bar(edges, counts, color=color[i], edgecolor=color[i], label=label[i])
@@ -242,8 +273,6 @@ if __name__ == "__main__":
                         help='input file')
     parser.add_argument("--output", "-o", metavar='O', type=str, nargs='?', default='output.txt',
                         help='output file')
-    parser.add_argument("--chunk_count", "-c", metavar='C', type=int, nargs='?', default=100,
-                        help='the number of chunk groups')
     parser.add_argument("--plot_rawcnt", "-r", action='store_true',
                         help='plot histogram of log file by instruction type')
     parser.add_argument("--plot_distribution", "-d", action='store_true',
@@ -252,15 +281,18 @@ if __name__ == "__main__":
                         help='title of a graph')
     args = parser.parse_args()
 
-    memdf1 = ref_cnt_per_block(input_filename=args.input, chunks=args.chunk_count)
+    memdf1 = ref_cnt_per_block(input_filename=args.input)
     save_csv(memdf1, args.output+'.csv', 0)
+
+    #memdf1 = pd.read_csv(args.output+'.csv', sep=',', header=0, index_col=0, on_bad_lines='skip')
 
     if (args.plot_rawcnt):
         instruction_cnt_graph(title=args.title, filename=args.output, readi_cnt=memdf1.iloc[0, 3], readd_cnt=memdf1.iloc[0, 4], write_cnt=memdf1.iloc[0, 5])
 
-    #memdf1 = pd.read_csv(args.output+'.csv', sep=',', header=0, index_col=0, on_bad_lines='skip')
-    ref_cnt_graph(memdf1, title=args.title, filename=args.output)
+    ref_cnt_graph(memdf1, title=args.title, dense=False, filename=args.output)
+    ref_cnt_graph(memdf1, title=args.title, dense=True, filename=args.output+'_dense')
 
     if (args.plot_distribution):
         plt.clf() # Clear the current figure
-        ref_cnt_distribute_graph(memdf1, title=args.title, filename=args.output, log_xscale=False)
+        ref_cnt_distribute_graph(memdf1, title=args.title, filename=args.output+'-1', log_xscale=True)
+        ref_cnt_distribute_graph(memdf1, title=args.title, filename=args.output+'-2', log_xscale=False)
