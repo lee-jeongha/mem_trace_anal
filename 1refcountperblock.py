@@ -109,12 +109,42 @@ def instruction_cnt_graph(title, filename, readi_cnt, readd_cnt, write_cnt):
     rects = plt.bar(x, values, color=colors)
     plt.xticks(x, labels)
     plt.yticks([])
-    plt.bar_label(rects, fontsize=20, fmt='%.0f')
-
-    plt.legend(handles, [str(i)+'%' for i in percentile_values], fontsize=15)
+    #plt.bar_label(rects, fontsize=20, fmt='%,.0f')
+    plt.bar_label(rects, [f'{i:}%' for i in percentile_values], fontsize=20)
+    plt.legend(handles, [f'{i:,.0f}' for i in values], loc='upper left', fontsize=15)
+    #plt.legend(handles, [str(i)+'%' for i in percentile_values], fontsize=15)
 
     #plt.show()
     plt.savefig(filename+'_instruction.png', dpi=300)
+
+def mem_footprint_graph(df, title, filename):
+    footprint = df['type'].value_counts()
+
+    readi_footprint = footprint['readi']
+    readd_footprint = footprint['readd']
+    read_footprint = footprint['read']
+    write_footprint = footprint['write']
+    total_footprint = footprint['read&write']
+
+    x = range(3)
+    labels = ['total', 'readi', 'readd', 'write']
+    values = [total_footprint, readi_footprint, readd_footprint, write_footprint]
+    colors = ['lightgrey', 'c', 'dodgerblue', 'red']
+    handles = [plt.Rectangle((0,0),1,1, color=colors[i]) for i in range(4)]
+    percentile_values = np.divide(values[1:], total_footprint/100).round(3)
+
+    fig, ax = plot_frame((1, 1), title=title, xlabel='instruction type', ylabel='Memory footprint (4KB)', share_yaxis='col')
+    
+    for i in x:
+        plt.bar(i, values[0], color=colors[0])
+    rects = plt.bar(x, values[1:], color=colors[1:])
+    plt.xticks(x, labels[1:])
+    plt.yticks([])
+    plt.bar_label(rects, [f'{i:}%' for i in percentile_values], fontsize=20)
+    plt.legend(handles, [f'{i:,}'+' (4KB)' for i in values], loc='upper left', fontsize=15)
+
+    #plt.show()
+    plt.savefig(filename+'_mem-footprint.png', dpi=300)
 
 """memdf1.1 graph"""
 def ref_cnt_graph(df, title, filename, dense = False, ylim : list = None):
@@ -130,11 +160,6 @@ def ref_cnt_graph(df, title, filename, dense = False, ylim : list = None):
     y2 = df['count'][(df['type']=='readd')]
     y3 = df['count'][(df['type']=='write')]
     y = df['count'][(df['type']=='read&write')]
-
-    print("memory footprint(4KB):", len(x))
-    print("memory footprint by readi(4KB):", len(x1))
-    print("memory footprint by readd(4KB):", len(x2))
-    print("memory footprint by writes(4KB):", len(x3))
 
     if dense:
         fig, ax = plot_frame((2, 1), (7, 4), title=title, xlabel='(virtual) memory block address', ylabel='memory block reference count', share_yaxis=False)
@@ -288,6 +313,7 @@ if __name__ == "__main__":
 
     if (args.plot_rawcnt):
         instruction_cnt_graph(title=args.title, filename=args.output, readi_cnt=memdf1.iloc[0, 3], readd_cnt=memdf1.iloc[0, 4], write_cnt=memdf1.iloc[0, 5])
+        mem_footprint_graph(df=memdf1, title=args.title, filename=args.output)
 
     ref_cnt_graph(memdf1, title=args.title, dense=False, filename=args.output)
     ref_cnt_graph(memdf1, title=args.title, dense=True, filename=args.output+'_dense')
