@@ -1,6 +1,7 @@
 import argparse
 import matplotlib.pyplot as plt
 import pandas as pd
+from matplotlib import ticker
 
 from load_and_save import json_to_csv
 
@@ -29,8 +30,12 @@ def plot_frame(subplot_matrix : tuple = (1, 1), subplot_figsize : tuple = (7, 7)
 
     return fig, ax
 
-def lru_lfu_graph(figures : tuple, fig_col_num, title, label_list, filename, xlim : list = None, ylim : list = None):
-    fig, ax = plot_frame((fig_col_num, 1), title=title, xlabel='rank(temporal locality)', ylabel='reference count', log_scale=True)
+def lru_lfu_graph(figures : tuple, graph_type, fig_col_num, title, label_list, filename, xlim : list = None, ylim : list = None):
+    if graph_type=='lru':
+        fig, ax = plot_frame((fig_col_num, 1), title=title, xlabel='rank(temporal locality)', ylabel='reference count', log_scale=True)
+    elif graph_type=='lfu':
+        fig, ax = plot_frame((fig_col_num, 1), title=title, xlabel='rank(temporal frequency)', ylabel='reference count', log_scale=True)
+
 
     if xlim:
         plt.setp(ax, xlim=xlim)
@@ -58,11 +63,34 @@ def lru_lfu_graph(figures : tuple, fig_col_num, title, label_list, filename, xli
     #plt.show()
     plt.savefig(filename+'.png', dpi=300)
 
+def lru_and_lfu_by_type_graph(lru_df, lfu_df, column_list, title, filename, xlim : list = None, ylim : list = None):
+    for col in column_list:
+        fig, ax = plot_frame((1, 1), title=title+' ('+col+')', xlabel='rank', ylabel='reference count', log_scale=True)
+    
+        if xlim:
+            plt.setp(ax, xlim=xlim)
+        if ylim:
+            plt.setp(ax, ylim=ylim)
+
+        x1 = range(1,len(lru_df[col+'_cnt'])+1)
+        y1 = lru_df[col+'_cnt']
+        x2 = range(1,len(lfu_df[col+'_cnt'])+1)
+        y2 = lfu_df[col+'_cnt']
+        plt.scatter(x1, y1, color='red', label='LRU', s=5)
+        plt.scatter(x2, y2, color='blue', label='LFU', s=5)
+        plt.legend(loc='upper right', ncol=1, fontsize=20, markerscale=3)
+        ax.xaxis.set_major_locator(ticker.LogLocator(numticks=8))
+        ax.yaxis.set_major_locator(ticker.LogLocator(numticks=8))
+        plt.savefig(filename+'_'+col+'.png', dpi=300)
+        plt.clf()
+
 #-----
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="plot lru/lfu graph from log file")
-    parser.add_argument("--filename", "-f", metavar='F', type=str, nargs='?', default='filename.txt',
-                        help='file name')
+    parser.add_argument("--output", "-o", metavar='F', type=str, nargs='?', default='output.txt',
+                        help='output file name')
+    parser.add_argument("--lru", "-r", metavar='R', type=str, nargs='?', help='lru reference count file')
+    parser.add_argument("--lfu", "-f", metavar='F', type=str, nargs='?', help='lfu reference count file')
     parser.add_argument("--end_chunk", "-e", metavar='E', type=int, nargs='?', default=100,
                         help='end chunk index')
     parser.add_argument("--fig_num", "-n", metavar='T', type=int, nargs='?', default=2,
@@ -71,18 +99,44 @@ if __name__ == "__main__":
                         help='title of a graph')
     args = parser.parse_args()
 
-    # Save All Checkpoints to Single '.csv' File
-    df = json_to_csv(filename=args.filename, ckpt=('readi', 'readd', 'read', 'write'), endpoint=args.end_chunk)
-    #df = json_to_csv(filename=args.filename, ckpt=('readi', 'readd', 'rw_by_type'), endpoint=args.end_chunk)
-    #df = json_to_csv(filename=args.filename, ckpt=('overall_rank'), endpoint=args.end_chunk)
-    #df = json_to_csv(filename=args.filename, ckpt=('rw_by_type', 'overall_rank'), endpoint=args.end_chunk, rw_column=True)
+    if args.lru and args.lfu:
+        # Save All Checkpoints to Single '.csv' File
+        lru_df = json_to_csv(filename=args.lru, ckpt=('readi', 'readd', 'read', 'write'), endpoint=args.end_chunk)
+        lfu_df = json_to_csv(filename=args.lfu, ckpt=('readi', 'readd', 'read', 'write'), endpoint=args.end_chunk)
 
-    # Plot LRU/LFU Graph
-    df = pd.read_csv(args.filename+'.csv')
-    
-    if args.fig_num == 1:
-        figure_tuple = ([df['readi_cnt'], df['readd_cnt'], df['write_cnt']])
-    else:
-        figure_tuple = ([df['readi_cnt'], df['readd_cnt']], [df['write_cnt']])
-    label_list = ['readi', 'readd', 'write']
-    lru_lfu_graph(figures=figure_tuple, fig_col_num=args.fig_num, title=args.title, label_list=label_list, filename=args.filename)
+        # Plot LRU/LFU Graph
+        if args.fig_num == 1:
+            lru_figure_tuple = ([lru_df['readi_cnt'], lru_df['readd_cnt'], lru_df['write_cnt']])
+            lfu_figure_tuple = ([lfu_df['readi_cnt'], lfu_df['readd_cnt'], lfu_df['write_cnt']])
+        else:
+            lru_figure_tuple = ([lru_df['readi_cnt'], lru_df['readd_cnt']], [lru_df['write_cnt']])
+            lfu_figure_tuple = ([lfu_df['readi_cnt'], lfu_df['readd_cnt']], [lfu_df['write_cnt']])
+        label_list = ['readi', 'readd', 'write']
+        lru_lfu_graph(figures=lru_figure_tuple, graph_type='lru', fig_col_num=args.fig_num, title=args.title, label_list=label_list, filename=args.lru, xlim=[0, 1e6], ylim=[0,1e6])
+        lru_lfu_graph(figures=lfu_figure_tuple, graph_type='lfu', fig_col_num=args.fig_num, title=args.title, label_list=label_list, filename=args.lfu, xlim=[0, 1e6], ylim=[0,1e6])
+
+        lru_and_lfu_by_type_graph(lru_df=lru_df, lfu_df=lfu_df, column_list=['readi', 'readd', 'write'], title=args.title, filename=args.output, xlim=[0,1e6], ylim=[0,1e6])
+
+    elif args.lru or args.lfu:
+        if args.lru:
+            ckpt_file = args.lru
+        elif args.lfu:
+            ckpt_file = args.lfu
+        
+        # Save All Checkpoints to Single '.csv' File
+        df = json_to_csv(filename=ckpt_file, ckpt=('readi', 'readd', 'read', 'write'), endpoint=args.end_chunk)
+        #df = json_to_csv(filename=ckpt_file, ckpt=('readi', 'readd', 'rw_by_type'), endpoint=args.end_chunk)
+        #df = json_to_csv(filename=ckpt_file, ckpt=('overall_rank'), endpoint=args.end_chunk)
+        #df = json_to_csv(filename=ckpt_file, ckpt=('rw_by_type', 'overall_rank'), endpoint=args.end_chunk, rw_column=True)
+
+        # Plot LRU/LFU Graph
+        if args.fig_num == 1:
+            figure_tuple = ([df['readi_cnt'], df['readd_cnt'], df['write_cnt']])
+        else:
+            figure_tuple = ([df['readi_cnt'], df['readd_cnt']], [df['write_cnt']])
+        label_list = ['readi', 'readd', 'write']
+
+        if args.lru:
+            lru_lfu_graph(figures=figure_tuple, graph_type='lru', fig_col_num=args.fig_num, title=args.title, label_list=label_list, filename=ckpt_file, xlim=[0, 1e6], ylim=[0,1e6])
+        elif args.lfu:
+            lru_lfu_graph(figures=figure_tuple, graph_type='lfu', fig_col_num=args.fig_num, title=args.title, label_list=label_list, filename=ckpt_file, xlim=[0, 1e6], ylim=[0,1e6])
