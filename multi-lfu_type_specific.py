@@ -177,7 +177,7 @@ class LFUCache(object):
 """
 
 ## load separate .csv file
-def lfu_simulation(startpoint, endpoint, input_filename, output_filename, type='all'):
+def lfu_simulation(startpoint, input_filename, output_filename, type='all'):
     ref_block = LFUCache()
     block_rank = dict()
     ref_cnt = list()
@@ -191,19 +191,24 @@ def lfu_simulation(startpoint, endpoint, input_filename, output_filename, type='
         ref_block.set(block_rank)
         # print(block_rank, ref_cnt)
 
-    for i in range(startpoint, endpoint):
+    i = startpoint
+    while True:
         try:
             memdf = pd.read_csv(input_filename + '_' + str(i) + '.csv', sep=',', header=0, index_col=0, on_bad_lines='skip')
         except FileNotFoundError:
             print("no file named:", input_filename + '_' + str(i) + '.csv')
             break
 
-        if type == 'read':
-            memdf = memdf[memdf['type'] != 'write']
+        if type == 'readi':
+            memdf = memdf[memdf['type'] == 'readi']
+        elif type == 'readd':
+            memdf = memdf[memdf['type'] == 'readd']
+        elif type == 'read':
+            memdf = memdf[memdf['type'] != 'write']    
         elif type == 'write':
             memdf = memdf[memdf['type'] == 'write']
         else:
-            print("choose type 'read' or 'write'")
+            print("choose type 'readi', 'readd', 'read' or 'write'")
             return
 
         ref_block, ref_cnt = simulation_regardless_of_type(memdf, ref_block, ref_cnt)
@@ -212,6 +217,7 @@ def lfu_simulation(startpoint, endpoint, input_filename, output_filename, type='
         savings = {'block_rank': block_rank, 'ref_cnt': ref_cnt}
         filename = output_filename + "-" + type + "_checkpoint" + str(i) + ".json"
         save_json(savings, filename)
+        i += 1
 
 #-----
 if __name__ == "__main__":
@@ -222,17 +228,19 @@ if __name__ == "__main__":
                         help='output file')
     parser.add_argument("--start_chunk", "-s", metavar='S', type=int, nargs='?', default=0,
                         help='start chunk index')
-    parser.add_argument("--end_chunk", "-e", metavar='E', type=int, nargs='?', default=100,
-                        help='end chunk index')
-    parser.add_argument("--title", "-t", metavar='T', type=str, nargs='?', default='',
-                        help='title of a graph')
     args = parser.parse_args()
 
-    p1 = Process(target=lfu_simulation, args=(args.start_chunk, args.end_chunk + 1, args.input, args.output, 'read'))
-    p2 = Process(target=lfu_simulation, args=(args.start_chunk, args.end_chunk + 1, args.input, args.output, 'write'))
+    p1 = Process(target=lfu_simulation, args=(args.start_chunk, args.input, args.output, 'readi'))
+    p2 = Process(target=lfu_simulation, args=(args.start_chunk, args.input, args.output, 'readd'))
+    p3 = Process(target=lfu_simulation, args=(args.start_chunk, args.input, args.output, 'write'))
+    #p4 = Process(target=lfu_simulation, args=(args.start_chunk, args.input, args.output, 'read'))
  
     p1.start()
     p2.start()
+    p3.start()
+    #p4.start()
 
     p1.join()
     p2.join()
+    p3.join()
+    #p4.join()
