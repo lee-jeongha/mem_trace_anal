@@ -94,9 +94,8 @@ def hist_label(subplot, counts, bars, round_range=0, rotation=90):
                 ha='center', va='bottom', rotation=rotation)
 
 """memdf1.0 graph"""
-def instruction_cnt_graph(title, filename, readi_cnt, readd_cnt, write_cnt):
-    x = range(3)
-    labels = ['readi', 'readd', 'write']
+def instruction_cnt_graph(title, filename, readi_cnt, readd_cnt, write_cnt, verbose : bool = True):
+    labels = ['inst. read', 'data read', 'data write']
     values = [readi_cnt, readd_cnt, write_cnt]
     colors = ['c', 'dodgerblue', 'red']
     handles = [plt.Rectangle((0,0),1,1, color=colors[i]) for i in range(3)]
@@ -104,20 +103,25 @@ def instruction_cnt_graph(title, filename, readi_cnt, readd_cnt, write_cnt):
     cnt_sum = readi_cnt + readd_cnt + write_cnt
     percentile_values = np.divide(values, cnt_sum/100).round(3)
 
-    fig, ax = plot_frame((1, 1), title=title, xlabel='instruction type', ylabel='instruction count', share_yaxis='col')
+    fig, ax = plot_frame((1, 1), title=title, ylabel='% of references', share_yaxis='col')
     
-    rects = plt.bar(x, values, color=colors)
-    plt.xticks(x, labels)
-    plt.yticks([])
-    #plt.bar_label(rects, fontsize=20, fmt='%,.0f')
-    plt.bar_label(rects, [f'{i:}%' for i in percentile_values], fontsize=20)
-    plt.legend(handles, [f'{i:,.0f}' for i in values], loc='upper left', fontsize=15)
-    #plt.legend(handles, [str(i)+'%' for i in percentile_values], fontsize=15)
-
+    rects = plt.bar(labels, percentile_values, color=colors)
+    
+    if verbose:
+        plt.yticks([])
+        
+        plt.bar_label(rects, fontsize=20, fmt='%,.0f')
+        #plt.bar_label(rects, [f'{i:}%' for i in percentile_values], fontsize=20)
+    
+        plt.legend(handles, [f'{i:,.0f}' for i in values], loc='upper left', fontsize=15)
+        #plt.legend(handles, [str(i)+'%' for i in percentile_values], fontsize=15)
+    else:
+        plt.ylim([0,100])
+    
     #plt.show()
     plt.savefig(filename+'_instruction.png', dpi=300)
 
-def mem_footprint_graph(df, title, filename):
+def mem_footprint_graph(df, title, filename, verbose : bool = True):
     footprint = df['type'].value_counts()
 
     readi_footprint = footprint['readi']
@@ -126,22 +130,29 @@ def mem_footprint_graph(df, title, filename):
     write_footprint = footprint['write']
     total_footprint = footprint['read&write']
 
-    x = range(3)
-    labels = ['total', 'readi', 'readd', 'write']
+    labels = ['total', 'inst. read', 'data read', 'data write']
     values = [total_footprint, readi_footprint, readd_footprint, write_footprint]
     colors = ['lightgrey', 'c', 'dodgerblue', 'red']
     handles = [plt.Rectangle((0,0),1,1, color=colors[i]) for i in range(4)]
     percentile_values = np.divide(values[1:], total_footprint/100).round(3)
 
-    fig, ax = plot_frame((1, 1), title=title, xlabel='instruction type', ylabel='Memory footprint (4KB)', share_yaxis='col')
+    fig, ax = plot_frame((1, 1), title=title, ylabel='% of Memory footprint', share_yaxis='col')
     
-    for i in x:
-        plt.bar(i, values[0], color=colors[0])
-    rects = plt.bar(x, values[1:], color=colors[1:])
-    plt.xticks(x, labels[1:])
-    plt.yticks([])
-    plt.bar_label(rects, [f'{i:}%' for i in percentile_values], fontsize=20)
-    plt.legend(handles, [f'{i:,}'+' (4KB)' for i in values], loc='upper left', fontsize=15)
+    if verbose:
+        for i in labels[1:]:
+            plt.bar(i, values[0], color=colors[0])
+        rects = plt.bar(labels[1:], values[1:], color=colors[1:])
+    else:
+        plt.bar(labels[1:], percentile_values, color=colors[1:])
+
+    if verbose:
+        plt.yticks([])
+        
+        plt.bar_label(rects, [f'{i:}%' for i in percentile_values], fontsize=20)
+        plt.legend(handles, [f'{i:,}'+' (4KB)' for i in values], loc='upper left', fontsize=15)
+
+    else:
+        plt.ylim([0,100])
 
     #plt.show()
     plt.savefig(filename+'_mem-footprint.png', dpi=300)
@@ -162,9 +173,9 @@ def ref_cnt_graph(df, title, filename, dense = False, ylim : list = None):
     y = df['count'][(df['type']=='read&write')]
 
     if dense:
-        fig, ax = plot_frame((2, 1), (7, 4), title=title, xlabel='(virtual) memory block address', ylabel='memory block reference count', share_yaxis=False)
+        fig, ax = plot_frame((2, 1), (7, 4), title=title, xlabel='(virtual) memory block address', ylabel='reference count', share_yaxis=False)
     else:
-        fig, ax = plot_frame((3, 1), (7, 4), title=title, xlabel='(virtual) memory block address', ylabel='memory block reference count')
+        fig, ax = plot_frame((3, 1), (7, 4), title=title, xlabel='(virtual) memory block address', ylabel='reference count')
 
     if ylim:
         plt.setp(ax, ylim=ylim)
@@ -174,11 +185,11 @@ def ref_cnt_graph(df, title, filename, dense = False, ylim : list = None):
     #print("write count[min,max]:", y3.min(), y3.max(), digit_length(y3.max()))
 
     if dense:
-        ax[0].bar(x1, y1, color='c', edgecolor='c', label='readi')
-        ax[0].bar(x2, y2, color='dodgerblue', edgecolor='dodgerblue', label='readd')
+        ax[0].bar(x1, y1, color='c', edgecolor='c', label='inst. read')
+        ax[0].bar(x2, y2, color='dodgerblue', edgecolor='dodgerblue', label='data read')
         ax[0].legend(loc='upper right', ncol=1, fontsize=20)
 
-        ax[1].bar(x3, y3, color='red', edgecolor='red', label='write')
+        ax[1].bar(x3, y3, color='red', edgecolor='red', label='data write')
         ax[1].legend(loc='lower right', ncol=1, fontsize=20)
 
         ax0_yrange = ax[0].get_ylim()
@@ -197,7 +208,7 @@ def ref_cnt_graph(df, title, filename, dense = False, ylim : list = None):
         x_list = [x1, x2, x3]
         y_list = [y1, y2, y3]
         color = ['c', 'dodgerblue', 'red', 'green']
-        label = ['readi', 'readd', 'write', 'read&write']
+        label = ['inst. read', 'data read', 'data write', 'total']
         
         for i in range(len(x_list)):
             ax[i].scatter(x_list[i], y_list[i], color=color[i], label=label[i], s=3)
@@ -242,7 +253,7 @@ def ref_cnt_distribute_graph(df, title, filename, log_xscale = True, cnt_ylim : 
 
     y_list = [y1, y2, y3, y]
     color = ['c', 'dodgerblue', 'red', 'green']
-    label = ['readi', 'readd', 'write', 'read&write']
+    label = ['inst. read', 'data read', 'data write', 'total']
    
     if log_xscale:
         fig, ax = plot_frame((len(y_list), 2), title=title, xlabel='reference count', ylabel='# of memory block', font_size=40, share_yaxis='col')
@@ -312,8 +323,8 @@ if __name__ == "__main__":
     #memdf1 = pd.read_csv(args.output+'.csv', sep=',', header=0, index_col=0, on_bad_lines='skip')
 
     if (args.plot_rawcnt):
-        instruction_cnt_graph(title=args.title, filename=args.output, readi_cnt=memdf1.iloc[0, 3], readd_cnt=memdf1.iloc[0, 4], write_cnt=memdf1.iloc[0, 5])
-        mem_footprint_graph(df=memdf1, title=args.title, filename=args.output)
+        instruction_cnt_graph(title=args.title, filename=args.output, readi_cnt=memdf1.iloc[0, 3], readd_cnt=memdf1.iloc[0, 4], write_cnt=memdf1.iloc[0, 5], verbose=False)
+        mem_footprint_graph(df=memdf1, title=args.title, filename=args.output, verbose=False)
 
     ref_cnt_graph(memdf1, title=args.title, dense=False, filename=args.output)
     ref_cnt_graph(memdf1, title=args.title, dense=True, filename=args.output+'_dense')
