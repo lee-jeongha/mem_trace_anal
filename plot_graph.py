@@ -32,9 +32,9 @@ def plot_frame(subplot_matrix : tuple = (1, 1), subplot_figsize : tuple = (7, 7)
 
 def lru_lfu_graph(figures : tuple, graph_type, fig_col_num, title, label_list, filename, xlim : list = None, ylim : list = None):
     if graph_type=='lru':
-        fig, ax = plot_frame((fig_col_num, 1), title=title, xlabel='rank(temporal locality)', ylabel='reference count', log_scale=True)
+        fig, ax = plot_frame((fig_col_num, 1), title=title, xlabel='page ranking', ylabel='# of references', log_scale=True)
     elif graph_type=='lfu':
-        fig, ax = plot_frame((fig_col_num, 1), title=title, xlabel='rank(temporal frequency)', ylabel='reference count', log_scale=True)
+        fig, ax = plot_frame((fig_col_num, 1), title=title, xlabel='page ranking', ylabel='# of references', log_scale=True)
 
 
     if xlim:
@@ -42,7 +42,7 @@ def lru_lfu_graph(figures : tuple, graph_type, fig_col_num, title, label_list, f
     if ylim:
         plt.setp(ax, ylim=ylim)
 
-    color_dict = {'readi':'c', 'readd':'dodgerblue', 'read':'blue', 'write':'red', 'read&write':'green'}
+    color_dict = {'inst. read':'c', 'data read':'dodgerblue', 'read':'blue', 'data write':'red', 'total':'green'}
     label_num = 0
     if fig_col_num == 1:
         for cnt_list_num in range(len(figures)):
@@ -65,7 +65,7 @@ def lru_lfu_graph(figures : tuple, graph_type, fig_col_num, title, label_list, f
 
 def lru_and_lfu_by_type_graph(lru_df, lfu_df, column_list, title, filename, xlim : list = None, ylim : list = None):
     for col in column_list:
-        fig, ax = plot_frame((1, 1), title=title+' ('+col+')', xlabel='rank', ylabel='reference count', log_scale=True)
+        fig, ax = plot_frame((1, 1), title=title+' ('+col+')', xlabel='page ranking', ylabel='# of references', log_scale=True)
     
         if xlim:
             plt.setp(ax, xlim=xlim)
@@ -111,11 +111,11 @@ if __name__ == "__main__":
         else:
             lru_figure_tuple = ([lru_df['readi_cnt'], lru_df['readd_cnt']], [lru_df['write_cnt']])
             lfu_figure_tuple = ([lfu_df['readi_cnt'], lfu_df['readd_cnt']], [lfu_df['write_cnt']])
-        label_list = ['readi', 'readd', 'write']
+        label_list = ['inst. read', 'data read', 'data write']
         lru_lfu_graph(figures=lru_figure_tuple, graph_type='lru', fig_col_num=args.fig_num, title=args.title, label_list=label_list, filename=args.lru, xlim=[0, 1e6], ylim=[0,1e6])
         lru_lfu_graph(figures=lfu_figure_tuple, graph_type='lfu', fig_col_num=args.fig_num, title=args.title, label_list=label_list, filename=args.lfu, xlim=[0, 1e6], ylim=[0,1e6])
 
-        lru_and_lfu_by_type_graph(lru_df=lru_df, lfu_df=lfu_df, column_list=['readi', 'readd', 'write'], title=args.title, filename=args.output, xlim=[0,1e6], ylim=[0,1e6])
+        lru_and_lfu_by_type_graph(lru_df=lru_df, lfu_df=lfu_df, column_list=['readi', 'readd', 'write'], title=args.title, filename=args.output, xlim=[0, 1e6], ylim=[0,1e6])
 
     elif args.lru or args.lfu:
         if args.lru:
@@ -134,7 +134,7 @@ if __name__ == "__main__":
             figure_tuple = ([df['readi_cnt'], df['readd_cnt'], df['write_cnt']])
         else:
             figure_tuple = ([df['readi_cnt'], df['readd_cnt']], [df['write_cnt']])
-        label_list = ['readi', 'readd', 'write']
+        label_list = ['inst. read', 'data read', 'data write']
 
         if args.lru:
             lru_lfu_graph(figures=figure_tuple, graph_type='lru', fig_col_num=args.fig_num, title=args.title, label_list=label_list, filename=ckpt_file, xlim=[0, 1e6], ylim=[0,1e6])
