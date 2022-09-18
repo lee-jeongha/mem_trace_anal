@@ -136,7 +136,7 @@ def mem_footprint_graph(df, title, filename, verbose : bool = True):
     handles = [plt.Rectangle((0,0),1,1, color=colors[i]) for i in range(4)]
     percentile_values = np.divide(values[1:], total_footprint/100).round(3)
 
-    fig, ax = plot_frame((1, 1), title=title, ylabel='% of Memory footprint', share_yaxis='col')
+    fig, ax = plot_frame((1, 1), title=title, ylabel='% of memory footprint', share_yaxis='col')
     
     if verbose:
         for i in labels[1:]:

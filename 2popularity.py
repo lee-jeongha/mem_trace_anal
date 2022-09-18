@@ -88,7 +88,7 @@ def zipf_fitting(freqs):
     return popt
 
 """memdf2.1 graph"""
-def popularity_graph(df, title, filname, xlim : list = None, ylim : list = None, zipf=False):
+def popularity_graph(df, title, filname, xlim : list = None, ylim : list = None, zipf=False, verbose=False):
     #readi
     x1 = df['type_rank'][(df['type']=='readi')]
     y1 = df['count'][(df['type']=='readi')]
@@ -106,7 +106,7 @@ def popularity_graph(df, title, filname, xlim : list = None, ylim : list = None,
     y = df['count'][(df['type']=='read&write')]
 
     if zipf:
-        fig, ax = plot_frame((1, 1), title=title, xlabel='ranking', ylabel='memory block access count', log_scale=True)
+        fig, ax = plot_frame((1, 1), title=title, xlabel='page ranking', ylabel='# of references', log_scale=True)
 
         if xlim:
             plt.setp(ax, xlim=xlim)
@@ -116,7 +116,7 @@ def popularity_graph(df, title, filname, xlim : list = None, ylim : list = None,
         x_list = [x, x1, x2, x3, x4]
         y_list = [y, y1, y2, y3, y4]
         colors = ['green', 'c', 'dodgerblue', 'blue', 'red']
-        labels = ['read&write', 'readi', 'readd', 'read', 'write']
+        labels = ['total', 'inst. read', 'data read', 'read', 'data write']
 
         #scatter
         for i in [1,2,4,0]: #[1,2,3,4,0]:
@@ -134,29 +134,29 @@ def popularity_graph(df, title, filname, xlim : list = None, ylim : list = None,
         
         for i in [1,2,4,0]: #[1,2,3,4,0]:
             ax.plot(x_list[i], func_powerlaw(x_list[i], *s_best[i]), color=zipf_colors[i], lw=2, label="curve_fitting: "+labels[i])
-            #ax.annotate(str(round(s_best[i][0],5)), xy=(annotate_xy[i], func_powerlaw(annotate_xy[i], *s_best[i])), xycoords='data',
-            #         xytext=annotate_xytext[i], textcoords="offset points", color=zipf_colors[i], size=13,
-            #         arrowprops=dict(arrowstyle="->", ls="--", color=zipf_colors[i], connectionstyle="arc3,rad=-0.2"))
+            if verbose:
+                ax.annotate(str(round(s_best[i][0],5)), xy=(annotate_xy[i], func_powerlaw(annotate_xy[i], *s_best[i])), xycoords='data',
+                         xytext=annotate_xytext[i], textcoords="offset points", color=zipf_colors[i], size=13,
+                         arrowprops=dict(arrowstyle="->", ls="--", color=zipf_colors[i], connectionstyle="arc3,rad=-0.2"))
 
         # legend
         ax.legend(loc='lower left', ncol=1, fontsize=15, markerscale=3)
 
     else:
-        fig, ax = plot_frame((2, 1), title=title, xlabel='ranking', ylabel='memory block access count', log_scale=True)
+        fig, ax = plot_frame((1, 1), title=title, xlabel='page ranking', ylabel='# of references', log_scale=True)
 
         if xlim:
             plt.setp(ax, xlim=xlim)
         if ylim:
             plt.setp(ax, ylim=ylim)
 
-        # read/write graph
-        ax[0].scatter(x3, y3, color='blue', label='read', s=3)
-        ax[0].scatter(x4, y4, color='red', label='write', s=3)
-        ax[0].legend(loc='lower left', ncol=1, fontsize=20, markerscale=3)
-
-        # read+write graph
-        ax[1].scatter(x, y, color='green', label='read&write', s=3)
-        ax[1].legend(loc='lower left', ncol=1, fontsize=20, markerscale=3)
+        #scatter
+        ax.scatter(x1, y1, color='c', label='inst. read', s=3)
+        ax.scatter(x2, y2, color='dodgerblue', label='data read', s=3)
+        #ax.scatter(x3, y3, color='blue', label='read', s=3)
+        ax.scatter(x4, y4, color='red', label='data write', s=3)
+        #ax.scatter(x, y, color='green', label='total', s=3)
+        ax.legend(loc='lower left', ncol=1, fontsize=20, markerscale=3)
 
     #plt.show()
     plt.savefig(filname+'.png', dpi=300)
@@ -165,7 +165,7 @@ def popularity_graph(df, title, filname, xlim : list = None, ylim : list = None,
 """memdf2.2 graph"""
 def pareto_graph(df, title, filname):
     fig, ax = plot_frame((1, 1), title=title, xlabel='rank (in % form)', ylabel='% of reference count')
-
+    ax.set_axisbelow(True)
     ax.grid(True, color='black', alpha=0.5, linestyle='--')
 
     #readi
@@ -187,7 +187,7 @@ def pareto_graph(df, title, filname):
     x_list = [x, x1, x2, x3, x4]
     y_list = [y, y1, y2, y3, y4]
     colors = ['green', 'c', 'dodgerblue', 'blue', 'red']
-    labels = ['read&write', 'readi', 'readd', 'read', 'write']
+    labels = ['total', 'inst. read', 'data read', 'read', 'data write']
 
     top20s = []
     for ys in y_list:
@@ -196,7 +196,7 @@ def pareto_graph(df, title, filname):
     print(top20s)
 
     #scatter
-    for i in [1,2,4,0]: #[1,2,3,4,0]:
+    for i in [1,2,4]: #[1,2,3,4,0]:
         ax.scatter(x_list[i], y_list[i], color=colors[i], label=labels[i], s=3)
 
     # legend
@@ -232,7 +232,7 @@ if __name__ == "__main__":
     memdf2 = memdf2[['blockaddress', 'count', 'type', 'type_rank', 'type_pcnt', 'type_pcnt_rank']]
     save_csv(memdf2, args.output+'.csv', 0)
 
-    popularity_graph(memdf2, title=args.title, filname=args.output, zipf=args.zipf)
+    popularity_graph(memdf2, title=args.title, filname=args.output, zipf=args.zipf, verbose=False)
     
     if (args.plot_pareto):
         plt.cla()

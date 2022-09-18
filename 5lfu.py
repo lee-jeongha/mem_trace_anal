@@ -209,7 +209,7 @@ def lfu_simulation(startpoint, endpoint, input_filename, output_filename):
 
 """##**memdf5 graph**"""
 def lfu_graph(read_cnt, write_cnt, title, filename, xlim : list = None, ylim : list = None):
-    fig, ax = plot_frame((2, 1), title=title, xlabel='rank(temporal frequency)', ylabel='reference count', log_scale=True)
+    fig, ax = plot_frame((2, 1), title=title, xlabel='page ranking', ylabel='# of references', log_scale=True)
 
     if xlim:
         plt.setp(ax, xlim=xlim)
