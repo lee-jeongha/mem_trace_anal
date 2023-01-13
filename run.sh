@@ -77,7 +77,7 @@ echo =====1refcountperblock.py is done!=====
 
 # popularity
 type2="$OUTPUT_DIR/memdf2/memdf2"
-python3 $CODE_PATH/2popularity.py -i $type1 -o $type2 -z -p -t $TITLE
+python3 $CODE_PATH/2popularity.py -i $type1 -o $type2 -z -c -t $TITLE
 echo =====2popularity.py is done!=====
 
 # memory access per logical time

@@ -90,20 +90,20 @@ def zipf_fitting(freqs):
 """memdf2.1 graph"""
 def popularity_graph(df, title, filname, xlim : list = None, ylim : list = None, zipf=False, verbose=False):
     #readi
-    x1 = df['type_rank'][(df['type']=='readi')]
-    y1 = df['count'][(df['type']=='readi')]
+    x1 = df['type_rank'][(df['type']=='readi')].sort_values()
+    y1 = df['count'][(df['type']=='readi')].sort_values(ascending=False)
     #readd
-    x2 = df['type_rank'][(df['type']=='readd')]
-    y2 = df['count'][(df['type']=='readd')]
+    x2 = df['type_rank'][(df['type']=='readd')].sort_values()
+    y2 = df['count'][(df['type']=='readd')].sort_values(ascending=False)
     #read
-    x3 = df['type_rank'][(df['type']=='read')]
-    y3 = df['count'][(df['type']=='read')]
+    x3 = df['type_rank'][(df['type']=='read')].sort_values()
+    y3 = df['count'][(df['type']=='read')].sort_values(ascending=False)
     #write
-    x4 = df['type_rank'][(df['type']=='write')]
-    y4 = df['count'][(df['type']=='write')]
+    x4 = df['type_rank'][(df['type']=='write')].sort_values()
+    y4 = df['count'][(df['type']=='write')].sort_values(ascending=False)
     #read&write
-    x = df['type_rank'][(df['type']=='read&write')]
-    y = df['count'][(df['type']=='read&write')]
+    x = df['type_rank'][(df['type']=='read&write')].sort_values()
+    y = df['count'][(df['type']=='read&write')].sort_values(ascending=False)
 
     if zipf:
         fig, ax = plot_frame((1, 1), title=title, xlabel='page ranking', ylabel='# of references', log_scale=True)
@@ -120,10 +120,10 @@ def popularity_graph(df, title, filname, xlim : list = None, ylim : list = None,
 
         #scatter
         for i in [1,2,4,0]: #[1,2,3,4,0]:
-            ax.scatter(x_list[i], y_list[i], color=colors[i], label=labels[i], s=3)
+            ax.scatter(np.arange(len(y_list[i])), y_list[i], color=colors[i], label=labels[i], s=3)
 
         #curve fitting
-        zipf_colors = ['limegreen', 'skyblue', 'royalblue', 'darkblue', 'salmon']
+        zipf_colors = ['darkgreen', 'darkcyan', 'steelblue', 'darkblue', 'brown']
         annotate_xy = [10, 30, 100, 500, 1000]
         annotate_xytext = [(-10.0, 30.0), (-50.0, -30.0), (-10.0, -50.0), (20.0, 30.0), (30.0, 10.0)]
         s_best = []
@@ -133,7 +133,7 @@ def popularity_graph(df, title, filname, xlim : list = None, ylim : list = None,
         print([zipf[0] for zipf in s_best])
         
         for i in [1,2,4,0]: #[1,2,3,4,0]:
-            ax.plot(x_list[i], func_powerlaw(x_list[i], *s_best[i]), color=zipf_colors[i], lw=2, label="curve_fitting: "+labels[i])
+            ax.plot(x_list[i], func_powerlaw(x_list[i], *s_best[i]), color=zipf_colors[i], lw=1.5, label="curve_fitting: "+labels[i])
             if verbose:
                 ax.annotate(str(round(s_best[i][0],5)), xy=(annotate_xy[i], func_powerlaw(annotate_xy[i], *s_best[i])), xycoords='data',
                          xytext=annotate_xytext[i], textcoords="offset points", color=zipf_colors[i], size=13,
@@ -163,50 +163,54 @@ def popularity_graph(df, title, filname, xlim : list = None, ylim : list = None,
 
 
 """memdf2.2 graph"""
-def pareto_graph(df, title, filname):
-    fig, ax = plot_frame((1, 1), title=title, xlabel='rank (in % form)', ylabel='% of reference count')
+def cdf_graph(df, title, filname):  # Cumulative Distribution Function
+    fig, ax = plot_frame((1, 1), title=title, xlabel='rank (in % form)', ylabel='CDF(reference count)')
     ax.set_axisbelow(True)
     ax.grid(True, color='black', alpha=0.5, linestyle='--')
 
     #readi
-    y1 = df['type_pcnt'][(df['type']=='readi')].sort_values(ascending=False).cumsum()
-    x1 = np.arange(len(y1)) / len(y1)
+    y1 = df['type_pcnt'][(df['type'] == 'readi')].sort_values(ascending=False).cumsum().to_list()
+    x1 = df['type_pcnt_rank'][(df['type'] == 'readi')].sort_values(ascending=True).to_list()
     #readd
-    y2 = df['type_pcnt'][(df['type']=='readd')].sort_values(ascending=False).cumsum()
-    x2 = np.arange(len(y2)) / len(y2)
+    y2 = df['type_pcnt'][(df['type'] == 'readd')].sort_values(ascending=False).cumsum().to_list()
+    x2 = df['type_pcnt_rank'][(df['type'] == 'readd')].sort_values(ascending=True).to_list()
     #read
-    y3 = df['type_pcnt'][(df['type']=='read')].sort_values(ascending=False).cumsum()
-    x3 = np.arange(len(y3)) / len(y3)
+    y3 = df['type_pcnt'][(df['type'] == 'read')].sort_values(ascending=False).cumsum().to_list()
+    x3 = df['type_pcnt_rank'][(df['type'] == 'read')].sort_values(ascending=True).to_list()
     #write
-    y4 = df['type_pcnt'][(df['type']=='write')].sort_values(ascending=False).cumsum()
-    x4 = np.arange(len(y4)) / len(y4)
+    y4 = df['type_pcnt'][(df['type'] == 'write')].sort_values(ascending=False).cumsum().to_list()
+    x4 = df['type_pcnt_rank'][(df['type'] == 'write')].sort_values(ascending=True).to_list()
     #read&write
-    y = df['type_pcnt'][(df['type']=='read&write')].sort_values(ascending=False).cumsum()
-    x = np.arange(len(y)) / len(y)
+    y = df['type_pcnt'][(df['type'] == 'read&write')].sort_values(ascending=False).cumsum().to_list()
+    x = df['type_pcnt_rank'][(df['type'] == 'read&write')].sort_values(ascending=True).to_list()
 
     x_list = [x, x1, x2, x3, x4]
     y_list = [y, y1, y2, y3, y4]
     colors = ['green', 'c', 'dodgerblue', 'blue', 'red']
+    dash_colors = ['darkgreen', 'darkcyan', 'steelblue', 'darkblue', 'brown']
     labels = ['total', 'inst. read', 'data read', 'read', 'data write']
 
     top20s = []
     for ys in y_list:
-        top20s.append(ys.values.tolist()[int(len(ys)*0.2)])
+        top20s.append(ys[int(len(ys)*0.2)])
     print("========top20%", labels, "========")
     print(top20s)
 
     #scatter
     for i in [1,2,4]: #[1,2,3,4,0]:
-        ax.scatter(x_list[i], y_list[i], color=colors[i], label=labels[i], s=3)
+        x_pos = [0, x_list[i][0]] + x_list[i] + [1]
+        y_pos = [0, 0] + y_list[i] + [1]
+        ax.plot(x_pos, y_pos, color=colors[i], label=labels[i], lw=3)
+        ax.plot(np.arange(len(y_list[i])) / len(y_list[i]), y_list[i], '--', color=dash_colors[i], lw=1.5)
 
     # legend
-    ax.legend(loc='lower right', ncol=1, fontsize=20, markerscale=3)
-    
+    ax.legend(loc='lower right', ncol=1, fontsize=20)
+
     ax.xaxis.set_major_locator(MaxNLocator(6)) 
     ax.yaxis.set_major_locator(MaxNLocator(6))
 
     #plt.show()
-    plt.savefig(filname+'_pareto.png', dpi=300)
+    plt.savefig(filname+'_CDF.png', dpi=300)
 
 #-----
 if __name__ == "__main__":
@@ -217,8 +221,8 @@ if __name__ == "__main__":
                         help='output file')
     parser.add_argument("--zipf", "-z", action='store_true',
                         help='calculate zipf parameter')
-    parser.add_argument("--plot_pareto", "-p", action='store_true',
-                        help='plot pareto graph')
+    parser.add_argument("--plot_CDF", "-c", action='store_true',
+                        help='plot CDF graph')
     parser.add_argument("--title", "-t", metavar='T', type=str, nargs='?', default='',
                         help='title of a graph')
     args = parser.parse_args()
@@ -233,7 +237,7 @@ if __name__ == "__main__":
     save_csv(memdf2, args.output+'.csv', 0)
 
     popularity_graph(memdf2, title=args.title, filname=args.output, zipf=args.zipf, verbose=False)
-    
-    if (args.plot_pareto):
+
+    if (args.plot_CDF):
         plt.cla()
-        pareto_graph(memdf2, title=args.title, filname=args.output)
+        cdf_graph(memdf2, title=args.title, filname=args.output)
